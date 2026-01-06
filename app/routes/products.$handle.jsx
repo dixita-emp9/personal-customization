@@ -1,4 +1,5 @@
-import {useLoaderData} from 'react-router';
+import { useLoaderData } from 'react-router';
+import { useState } from 'react';
 import {
   getSelectedProductOptions,
   Analytics,
@@ -7,17 +8,18 @@ import {
   getAdjacentAndFirstAvailableVariants,
   useSelectedOptionInUrlParam,
 } from '@shopify/hydrogen';
-import {ProductPrice} from '~/components/ProductPrice';
-import {ProductImage} from '~/components/ProductImage';
-import {ProductForm} from '~/components/ProductForm';
-import {redirectIfHandleIsLocalized} from '~/lib/redirect';
+import { ProductPrice } from '~/components/ProductPrice';
+import { ProductImage } from '~/components/ProductImage';
+import { ProductForm } from '~/components/ProductForm';
+import { redirectIfHandleIsLocalized } from '~/lib/redirect';
+import { ProductCustomizer } from '~/components/ProductCustomizer/ProductCustomizer';
 
 /**
  * @type {Route.MetaFunction}
  */
-export const meta = ({data}) => {
+export const meta = ({ data }) => {
   return [
-    {title: `Hydrogen | ${data?.product.title ?? ''}`},
+    { title: `Hydrogen | ${data?.product.title ?? ''}` },
     {
       rel: 'canonical',
       href: `/products/${data?.product.handle}`,
@@ -35,7 +37,7 @@ export async function loader(args) {
   // Await the critical data required to render initial state of the page
   const criticalData = await loadCriticalData(args);
 
-  return {...deferredData, ...criticalData};
+  return { ...deferredData, ...criticalData };
 }
 
 /**
@@ -43,30 +45,37 @@ export async function loader(args) {
  * needed to render the page. If it's unavailable, the whole page should 400 or 500 error.
  * @param {Route.LoaderArgs}
  */
-async function loadCriticalData({context, params, request}) {
-  const {handle} = params;
-  const {storefront} = context;
+async function loadCriticalData({ context, params, request }) {
+  const { handle } = params;
+  const { storefront } = context;
 
   if (!handle) {
     throw new Error('Expected product handle to be defined');
   }
 
-  const [{product}] = await Promise.all([
+  const [{ product }, { collection: lettersCollection }, { collection: patchesCollection }] = await Promise.all([
     storefront.query(PRODUCT_QUERY, {
-      variables: {handle, selectedOptions: getSelectedProductOptions(request)},
+      variables: { handle, selectedOptions: getSelectedProductOptions(request) },
     }),
-    // Add other queries here, so that they are loaded in parallel
+    storefront.query(COLLECTION_QUERY, {
+      variables: { handle: 'letters' }
+    }),
+    storefront.query(COLLECTION_QUERY, {
+      variables: { handle: 'patches' }
+    }),
   ]);
 
   if (!product?.id) {
-    throw new Response(null, {status: 404});
+    throw new Response(null, { status: 404 });
   }
 
   // The API handle might be localized, so redirect to the localized handle
-  redirectIfHandleIsLocalized(request, {handle, data: product});
+  redirectIfHandleIsLocalized(request, { handle, data: product });
 
   return {
     product,
+    lettersCollection,
+    patchesCollection
   };
 }
 
@@ -76,16 +85,14 @@ async function loadCriticalData({context, params, request}) {
  * Make sure to not throw any errors here, as it will cause the page to 500.
  * @param {Route.LoaderArgs}
  */
-function loadDeferredData({context, params}) {
-  // Put any API calls that is not critical to be available on first page render
-  // For example: product reviews, product recommendations, social feeds.
-
+function loadDeferredData({ context, params }) {
   return {};
 }
 
 export default function Product() {
   /** @type {LoaderReturnData} */
-  const {product} = useLoaderData();
+  const { product, lettersCollection, patchesCollection } = useLoaderData();
+  const [isCustomizing, setIsCustomizing] = useState(false);
 
   // Optimistically selects a variant with given available variant information
   const selectedVariant = useOptimisticVariant(
@@ -103,7 +110,29 @@ export default function Product() {
     selectedOrFirstAvailableVariant: selectedVariant,
   });
 
-  const {title, descriptionHtml} = product;
+  const { title, descriptionHtml } = product;
+
+  if (isCustomizing) {
+    return (
+      <div className="product-customizer-page">
+        <div className="p-4 border-b">
+          <button
+            onClick={() => setIsCustomizing(false)}
+            className="text-sm font-medium text-gray-500 hover:text-gray-900 flex items-center gap-2"
+          >
+            ← Back to Product Details
+          </button>
+        </div>
+        <ProductCustomizer
+          product={product}
+          variants={product.variants}
+          selectedVariant={selectedVariant}
+          lettersCollection={lettersCollection}
+          patchesCollection={patchesCollection}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="product">
@@ -115,6 +144,19 @@ export default function Product() {
           compareAtPrice={selectedVariant?.compareAtPrice}
         />
         <br />
+
+        {/* Personalization Trigger */}
+        <div className="my-6 p-6 bg-pink-50 border border-pink-100 rounded-xl text-center">
+          <h3 className="text-lg font-bold text-gray-900 mb-2">Want to customize this?</h3>
+          <p className="text-gray-600 mb-4 text-sm">Add letters, patches, embroidery, and more!</p>
+          <button
+            onClick={() => setIsCustomizing(true)}
+            className="w-full py-3 px-6 bg-pink-500 text-white font-bold rounded-full hover:bg-pink-600 transition-all shadow-lg shadow-pink-200"
+          >
+            ✨ Get Personalized
+          </button>
+        </div>
+
         <ProductForm
           productOptions={productOptions}
           selectedVariant={selectedVariant}
@@ -125,7 +167,7 @@ export default function Product() {
           <strong>Description</strong>
         </p>
         <br />
-        <div dangerouslySetInnerHTML={{__html: descriptionHtml}} />
+        <div dangerouslySetInnerHTML={{ __html: descriptionHtml }} />
         <br />
       </div>
       <Analytics.ProductView
@@ -221,6 +263,11 @@ const PRODUCT_FRAGMENT = `#graphql
       description
       title
     }
+    variants(first: 250) {
+      nodes {
+        ...ProductVariant
+      }
+    }
   }
   ${PRODUCT_VARIANT_FRAGMENT}
 `;
@@ -237,6 +284,38 @@ const PRODUCT_QUERY = `#graphql
     }
   }
   ${PRODUCT_FRAGMENT}
+`;
+
+const COLLECTION_QUERY = `#graphql
+  query Collection($handle: String!) {
+    collection(handle: $handle) {
+      id
+      title
+      products(first: 250) {
+        nodes {
+          id
+          title
+          handle
+          variants(first: 50) {
+             nodes {
+                id
+                title
+                image {
+                   url
+                }
+                price {
+                   amount
+                }
+                selectedOptions {
+                   name
+                   value
+                }
+             }
+          }
+        }
+      }
+    }
+  }
 `;
 
 /** @typedef {import('./+types/products.$handle').Route} Route */
