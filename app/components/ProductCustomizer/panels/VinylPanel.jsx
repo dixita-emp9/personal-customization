@@ -11,7 +11,7 @@ export function VinylPanel() {
         if (file) {
             const reader = new FileReader();
             reader.onload = () => {
-                setVinylImage(reader.result);
+                setVinylImage({ image: reader.result, filename: file.name });
             };
             reader.readAsDataURL(file);
         }

@@ -127,8 +127,12 @@ const useCustomizerStore = create((set, get) => ({
     },
 
     // Vinyl Actions
-    setVinylImage: (image) => {
+    setVinylImage: (payload) => {
         set((state) => {
+            // payload can be { image, filename } or null
+            const image = payload?.image || null;
+            const filename = payload?.filename || null;
+
             // Check if vinyl object exists
             let newObjects = [...state.canvasObjects];
             const existingIndex = newObjects.findIndex(obj => obj.type === 'vinyl');
@@ -142,11 +146,12 @@ const useCustomizerStore = create((set, get) => ({
                     rotation: 0,
                     scaleX: 1,
                     scaleY: 1,
-                    image: image
+                    image: image,
+                    filename: filename
                 };
 
                 if (existingIndex >= 0) {
-                    newObjects[existingIndex] = { ...newObjects[existingIndex], image };
+                    newObjects[existingIndex] = { ...newObjects[existingIndex], image, filename };
                 } else {
                     newObjects.push(vinylObj);
                 }
@@ -158,7 +163,7 @@ const useCustomizerStore = create((set, get) => ({
             }
 
             return {
-                vinylState: { ...state.vinylState, image },
+                vinylState: { ...state.vinylState, image, filename },
                 canvasObjects: newObjects,
                 selectedObjectId: 'vinyl-main'
             };
@@ -169,8 +174,13 @@ const useCustomizerStore = create((set, get) => ({
         canvasObjects: [],
         selectedObjectId: null,
         isEmbroideryEnabled: false,
-        vinylState: { image: null, price: 60.00 },
-        embroideryState: { text: '', fontFamily: 'Lucida', color: 'Black', price: 80.00 }
+        vinylState: { image: null, filename: null, price: 60.00 },
+        embroideryState: { text: '', fontFamily: 'Lucida', color: 'Black', price: 80.00 },
+
+        // Design Aids & Alignment State
+        showDesignAids: false,
+        autoAlign: false,
+        alignmentMode: 'middle_center', // default
     }),
 
     // Design Aids & Alignment State

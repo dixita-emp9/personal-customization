@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import useCustomizerStore from '../../store/useCustomizerStore';
+import { AddToCartButton } from '~/components/AddToCartButton';
 import { clsx } from 'clsx';
 // Import Panels (will create these next)
 import { LettersPatchesPanel } from './panels/LettersPatchesPanel';
@@ -18,6 +19,7 @@ const OPTIONS = [
 export function ControlsPanel({ product, variants, lettersCollection, patchesCollection }) {
     const {
         mode, setMode, baseProduct, canvasObjects, vinylState,
+        isEmbroideryEnabled, embroideryState,
         showDesignAids, toggleDesignAids,
         autoAlign, toggleAutoAlign,
         alignmentMode, setAlignmentMode
@@ -161,12 +163,62 @@ export function ControlsPanel({ product, variants, lettersCollection, patchesCol
                 </div>
 
                 <div className="flex gap-3">
-                    <button className="flex-1 py-3 px-6 border border-gray-300 rounded-full font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+                    <button
+                        className="flex-1 py-3 px-6 border border-gray-300 rounded-full font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                        onClick={() => window.history.back()}
+                    >
                         Back
                     </button>
-                    <button className="flex-[2] py-3 px-6 bg-pink-500 text-white rounded-full font-bold hover:bg-pink-600 transition-colors shadow-lg shadow-pink-200">
-                        Add to Bag
-                    </button>
+
+                    <div className="flex-[2]">
+                        <AddToCartButton
+                            lines={[
+                                // 1. Base Product Line
+                                {
+                                    merchandiseId: baseProduct?.variantId,
+                                    quantity: 1,
+                                    attributes: [
+                                        // Embroidery Attributes
+                                        ...(isEmbroideryEnabled ? [
+                                            { key: 'Embroidery', value: 'Yes' },
+                                            { key: 'Embroidery_Text', value: embroideryState.text || '' },
+                                            { key: 'Embroidery_Font', value: embroideryState.fontFamily || '' },
+                                            { key: 'Embroidery_Color', value: embroideryState.color || '' },
+                                            { key: 'Embroidery_Price', value: '80.00' }
+                                        ] : []),
+                                        // Vinyl Attributes
+                                        ...(vinylState.image ? [
+                                            { key: 'Vinyl_Transfer', value: 'Yes' },
+                                            { key: 'Vinyl_Filename', value: vinylState.filename || 'Uploaded Image' },
+                                            { key: 'Vinyl_Price', value: '60.00' }
+                                        ] : []),
+                                        // Summary
+                                        { key: 'Total_Items', value: `${canvasObjects.length}` },
+                                        { key: 'Customization_Ref', value: `Ref-${Date.now()}` }
+                                    ]
+                                },
+                                // 2. Letters & Patches Lines
+                                ...canvasObjects
+                                    .filter(obj => (obj.type === 'letter' || obj.type === 'patch') && obj.variantId)
+                                    .map(obj => ({
+                                        merchandiseId: obj.variantId,
+                                        quantity: 1,
+                                        attributes: [
+                                            { key: 'Placement_X', value: Math.round(obj.x).toString() },
+                                            { key: 'Placement_Y', value: Math.round(obj.y).toString() },
+                                            { key: 'Rotation', value: Math.round(obj.rotation).toString() },
+                                            { key: 'Scale', value: Number(obj.scaleX).toFixed(2) },
+                                            { key: 'Parent_Ref', value: `Ref-${Date.now()}` }
+                                        ]
+                                    }))
+                            ]}
+                            disabled={!baseProduct}
+                        >
+                            <div className="w-full h-full flex items-center justify-center bg-pink-500 text-white rounded-full font-bold hover:bg-pink-600 transition-colors shadow-lg shadow-pink-200 uppercase text-sm tracking-wide cursor-pointer py-3">
+                                Add to Bag
+                            </div>
+                        </AddToCartButton>
+                    </div>
                 </div>
             </div>
         </div>

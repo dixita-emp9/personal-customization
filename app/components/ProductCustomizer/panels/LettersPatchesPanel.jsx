@@ -22,6 +22,7 @@ export function LettersPatchesPanel({ lettersCollection, patchesCollection }) {
         const data = {
             type: activeTab === 'letters' ? 'letter' : 'patch',
             id: variant.id,
+            variantId: variant.id, // Explicitly store variantId
             productId: product.id,
             productTitle: product.title,
             variantTitle: variant.title,
