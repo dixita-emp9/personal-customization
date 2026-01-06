@@ -14,7 +14,7 @@ function ClientOnly({ children, fallback = null }) {
     return mounted ? children() : fallback;
 }
 
-function ProductCustomizerClient({ product, variants, lettersCollection, patchesCollection }) {
+function ProductCustomizerClient({ product, variants, lettersCollection, patchesCollection, embroideryProduct, cricutProduct }) {
     return (
         <div className="flex flex-col lg:flex-row w-full min-h-screen bg-white">
             {/* Left Panel - Canvas */}
@@ -37,6 +37,8 @@ function ProductCustomizerClient({ product, variants, lettersCollection, patches
                         variants={variants}
                         lettersCollection={lettersCollection}
                         patchesCollection={patchesCollection}
+                        embroideryProduct={embroideryProduct}
+                        cricutProduct={cricutProduct}
                     />
                 </Suspense>
             </div>
@@ -44,7 +46,7 @@ function ProductCustomizerClient({ product, variants, lettersCollection, patches
     );
 }
 
-export function ProductCustomizer({ product, variants, selectedVariant, lettersCollection, patchesCollection }) {
+export function ProductCustomizer({ product, variants, selectedVariant, lettersCollection, patchesCollection, embroideryProduct, cricutProduct }) {
     const { setBaseProduct } = useCustomizerStore();
 
     useEffect(() => {
@@ -74,6 +76,8 @@ export function ProductCustomizer({ product, variants, selectedVariant, lettersC
                     variants={variants}
                     lettersCollection={lettersCollection}
                     patchesCollection={patchesCollection}
+                    embroideryProduct={embroideryProduct}
+                    cricutProduct={cricutProduct}
                 />
             )}
         </ClientOnly>

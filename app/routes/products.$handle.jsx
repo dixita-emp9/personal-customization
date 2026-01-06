@@ -53,7 +53,13 @@ async function loadCriticalData({ context, params, request }) {
     throw new Error('Expected product handle to be defined');
   }
 
-  const [{ product }, { collection: lettersCollection }, { collection: patchesCollection }] = await Promise.all([
+  const [
+    { product },
+    { collection: lettersCollection },
+    { collection: patchesCollection },
+    { product: embroideryProduct },
+    { product: cricutProduct }
+  ] = await Promise.all([
     storefront.query(PRODUCT_QUERY, {
       variables: { handle, selectedOptions: getSelectedProductOptions(request) },
     }),
@@ -62,6 +68,12 @@ async function loadCriticalData({ context, params, request }) {
     }),
     storefront.query(COLLECTION_QUERY, {
       variables: { handle: 'patches' }
+    }),
+    storefront.query(PRODUCT_QUERY, {
+      variables: { handle: 'large-embroidery', selectedOptions: [] } // 'large-embroidery' from URL
+    }),
+    storefront.query(PRODUCT_QUERY, {
+      variables: { handle: 'cricut', selectedOptions: [] } // 'cricut' from URL
     }),
   ]);
 
@@ -75,7 +87,9 @@ async function loadCriticalData({ context, params, request }) {
   return {
     product,
     lettersCollection,
-    patchesCollection
+    patchesCollection,
+    embroideryProduct,
+    cricutProduct
   };
 }
 
@@ -91,7 +105,7 @@ function loadDeferredData({ context, params }) {
 
 export default function Product() {
   /** @type {LoaderReturnData} */
-  const { product, lettersCollection, patchesCollection } = useLoaderData();
+  const { product, lettersCollection, patchesCollection, embroideryProduct, cricutProduct } = useLoaderData();
   const [isCustomizing, setIsCustomizing] = useState(false);
 
   // Optimistically selects a variant with given available variant information
@@ -129,6 +143,8 @@ export default function Product() {
           selectedVariant={selectedVariant}
           lettersCollection={lettersCollection}
           patchesCollection={patchesCollection}
+          embroideryProduct={embroideryProduct}
+          cricutProduct={cricutProduct}
         />
       </div>
     );

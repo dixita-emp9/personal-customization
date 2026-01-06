@@ -16,7 +16,7 @@ const OPTIONS = [
     { id: 'vinyl', label: 'Cricut/Vinyl' },
 ];
 
-export function ControlsPanel({ product, variants, lettersCollection, patchesCollection }) {
+export function ControlsPanel({ product, variants, lettersCollection, patchesCollection, embroideryProduct, cricutProduct }) {
     const {
         mode, setMode, baseProduct, canvasObjects, vinylState,
         isEmbroideryEnabled, embroideryState,
@@ -178,26 +178,41 @@ export function ControlsPanel({ product, variants, lettersCollection, patchesCol
                                     merchandiseId: baseProduct?.variantId,
                                     quantity: 1,
                                     attributes: [
-                                        // Embroidery Attributes
-                                        ...(isEmbroideryEnabled ? [
-                                            { key: 'Embroidery', value: 'Yes' },
-                                            { key: 'Embroidery_Text', value: embroideryState.text || '' },
-                                            { key: 'Embroidery_Font', value: embroideryState.fontFamily || '' },
-                                            { key: 'Embroidery_Color', value: embroideryState.color || '' },
-                                            { key: 'Embroidery_Price', value: '80.00' }
-                                        ] : []),
-                                        // Vinyl Attributes
-                                        ...(vinylState.image ? [
-                                            { key: 'Vinyl_Transfer', value: 'Yes' },
-                                            { key: 'Vinyl_Filename', value: vinylState.filename || 'Uploaded Image' },
-                                            { key: 'Vinyl_Price', value: '60.00' }
-                                        ] : []),
-                                        // Summary
+                                        // Metadata references
                                         { key: 'Total_Items', value: `${canvasObjects.length}` },
-                                        { key: 'Customization_Ref', value: `Ref-${Date.now()}` }
+                                        { key: 'Customization_Ref', value: `Ref-${Date.now()}` },
+                                        // Informational only - real products added below
+                                        ...(isEmbroideryEnabled ? [{ key: 'Includes_Embroidery', value: 'Yes' }] : []),
+                                        ...(vinylState.image ? [{ key: 'Includes_Vinyl', value: 'Yes' }] : [])
                                     ]
                                 },
-                                // 2. Letters & Patches Lines
+                                // 2. Embroidery Product Line (Dynamic)
+                                ...(isEmbroideryEnabled && embroideryProduct?.selectedOrFirstAvailableVariant?.id ? [
+                                    {
+                                        merchandiseId: embroideryProduct.selectedOrFirstAvailableVariant.id,
+                                        quantity: 1,
+                                        attributes: [
+                                            { key: 'Text', value: embroideryState.text || '' },
+                                            { key: 'Font', value: embroideryState.fontFamily || '' },
+                                            { key: 'Color', value: embroideryState.color || '' },
+                                            { key: 'Parent_Ref', value: `Ref-${Date.now()}` }
+                                        ]
+                                    }
+                                ] : []),
+                                // 3. Cricut/Vinyl Product Line (Dynamic)
+                                ...(vinylState.image && cricutProduct?.selectedOrFirstAvailableVariant?.id ? [
+                                    {
+                                        merchandiseId: cricutProduct.selectedOrFirstAvailableVariant.id,
+                                        quantity: 1,
+                                        attributes: [
+                                            { key: 'Filename', value: vinylState.filename || 'Uploaded Image' },
+                                            // Ideally we'd pass the image URL if uploaded, but for now we rely on filename/session
+                                            // In a real app, we might upload to Shopify or external storage first.
+                                            { key: 'Parent_Ref', value: `Ref-${Date.now()}` }
+                                        ]
+                                    }
+                                ] : []),
+                                // 4. Letters & Patches Lines
                                 ...canvasObjects
                                     .filter(obj => (obj.type === 'letter' || obj.type === 'patch') && obj.variantId)
                                     .map(obj => ({
