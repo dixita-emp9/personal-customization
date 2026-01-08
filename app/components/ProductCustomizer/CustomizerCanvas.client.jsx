@@ -5,39 +5,47 @@ import { X } from 'lucide-react';
 import useCustomizerStore from '../../store/useCustomizerStore';
 
 const URLImage = ({ image, nodeRef, onChange, ...props }) => {
-    const [img] = useImage(image.src || image);
+    const [img] = useImage(image.src || image, 'anonymous');
 
-    // Enforce 50x50 initial size logic & Centering
+    // Enforce size logic & Centering
     useEffect(() => {
         if (img && nodeRef?.current) {
             const node = nodeRef.current;
             const isRestrictedType = props.type === 'letter' || props.type === 'patch';
+            const isVinyl = props.type === 'vinyl';
 
             // 1. Center the anchor point
             node.offsetX(img.width / 2);
             node.offsetY(img.height / 2);
 
-            // 2. Enforce initial 50px constraint if new addition (scaleX === 1)
-            // Or if we want to strictly enforce it always on load?
-            // "Cannot exceed 50x50" - ensures it starts there.
-            if (isRestrictedType && node.scaleX() === 1 && img.width > 0) {
-                const maxDim = 50;
-                // Calculate scale to fit strictly within 50x50
-                const scale = maxDim / Math.max(img.width, img.height);
+            // 2. Initial Scaling Logic
+            if (node.scaleX() === 1 && img.width > 0) {
+                let scale = 1;
 
-                node.scaleX(scale);
-                node.scaleY(scale);
+                if (isRestrictedType) {
+                    // 50px constraint for letters/patches
+                    const maxDim = 50;
+                    scale = maxDim / Math.max(img.width, img.height);
+                } else if (isVinyl) {
+                    // Reasonable size for Vinyl (e.g., max 200px or 1/3 of stage)
+                    // This prevents huge uploads from covering the screen or being off-canvas
+                    const maxDim = 200;
+                    if (img.width > maxDim || img.height > maxDim) {
+                        scale = maxDim / Math.max(img.width, img.height);
+                    }
+                }
 
-                // Important: sync back to store so it persists
-                if (onChange) {
-                    onChange({
-                        scaleX: scale,
-                        scaleY: scale,
-                        // Update position to account for offset if needed?
-                        // No, (x,y) is anchor position. If we set offset, (x,y) is the visual center.
-                        // We might need to ensure the visual position doesn't jump if we just added it.
-                        // If we just dropped it, x/y is pointer pos. Setting offset centers it on pointer. This is desired.
-                    });
+                if (scale !== 1) {
+                    node.scaleX(scale);
+                    node.scaleY(scale);
+
+                    // Sync back to store
+                    if (onChange) {
+                        onChange({
+                            scaleX: scale,
+                            scaleY: scale,
+                        });
+                    }
                 }
             }
         }
@@ -180,7 +188,7 @@ export function CustomizerCanvas() {
 
     const stageRef = useRef(null);
     const transformerRef = useRef(null);
-    const [baseImage] = useImage(baseProduct?.image || '');
+    const [baseImage] = useImage(baseProduct?.image || '', 'anonymous');
 
     // Calculate Zones based on Product Title
     // Assumptions based on prompt:

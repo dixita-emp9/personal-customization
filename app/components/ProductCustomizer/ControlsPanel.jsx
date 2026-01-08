@@ -228,6 +228,7 @@ export function ControlsPanel({ product, variants, lettersCollection, patchesCol
                                     }))
                             ]}
                             disabled={!baseProduct}
+                            redirectTo="/cart"
                         >
                             <div className="w-full h-full flex items-center justify-center bg-pink-500 text-white rounded-full font-bold hover:bg-pink-600 transition-colors shadow-lg shadow-pink-200 uppercase text-sm tracking-wide cursor-pointer py-3">
                                 Add to Bag
