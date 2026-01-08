@@ -126,7 +126,9 @@ export default function Product() {
 
   const { title, descriptionHtml } = product;
 
-  if (isCustomizing) {
+  const isPersonalisable = product.personalisable?.value === 'true';
+
+  if (isCustomizing && isPersonalisable) {
     return (
       <div className="product-customizer-page">
         <div className="p-4 border-b">
@@ -161,17 +163,19 @@ export default function Product() {
         />
         <br />
 
-        {/* Personalization Trigger */}
-        <div className="my-6 p-6 bg-pink-50 border border-pink-100 rounded-xl text-center">
-          <h3 className="text-lg font-bold text-gray-900 mb-2">Want to customize this?</h3>
-          <p className="text-gray-600 mb-4 text-sm">Add letters, patches, embroidery, and more!</p>
-          <button
-            onClick={() => setIsCustomizing(true)}
-            className="w-full py-3 px-6 bg-pink-500 text-white font-bold rounded-full hover:bg-pink-600 transition-all shadow-lg shadow-pink-200"
-          >
-            ✨ Get Personalized
-          </button>
-        </div>
+        {/* Personalization Trigger - Only Show if Eligible */}
+        {isPersonalisable && (
+          <div className="my-6 p-6 bg-pink-50 border border-pink-100 rounded-xl text-center">
+            <h3 className="text-lg font-bold text-gray-900 mb-2">Want to customize this?</h3>
+            <p className="text-gray-600 mb-4 text-sm">Add letters, patches, embroidery, and more!</p>
+            <button
+              onClick={() => setIsCustomizing(true)}
+              className="w-full py-3 px-6 bg-pink-500 text-white font-bold rounded-full hover:bg-pink-600 transition-all shadow-lg shadow-pink-200"
+            >
+              ✨ Get Personalized
+            </button>
+          </div>
+        )}
 
         <ProductForm
           productOptions={productOptions}
@@ -283,6 +287,9 @@ const PRODUCT_FRAGMENT = `#graphql
       nodes {
         ...ProductVariant
       }
+    }
+    personalisable: metafield(namespace: "tht", key: "personalisable") {
+      value
     }
   }
   ${PRODUCT_VARIANT_FRAGMENT}

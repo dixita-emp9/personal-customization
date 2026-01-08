@@ -74,6 +74,8 @@ const useCustomizerStore = create((set, get) => ({
         selectedObjectId: object.id
     })),
 
+    setCanvasObjects: (objects) => set({ canvasObjects: objects }),
+
     updateObject: (id, updates) => set((state) => ({
         canvasObjects: state.canvasObjects.map((obj) =>
             obj.id === id ? { ...obj, ...updates } : obj
@@ -192,6 +194,9 @@ const useCustomizerStore = create((set, get) => ({
     toggleAutoAlign: (val) => set({ autoAlign: val }),
     setAlignmentMode: (mode) => set({ alignmentMode: mode }),
 
+    // Active Zone for Global Tidy
+    activeZoneId: 'z1',
+    setActiveZoneId: (id) => set({ activeZoneId: id }),
 }));
 
 export default useCustomizerStore;

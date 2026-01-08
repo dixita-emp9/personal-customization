@@ -54,16 +54,15 @@ const URLImage = ({ image, nodeRef, onChange, ...props }) => {
     return <KonvaImage image={img} ref={nodeRef} {...props} />;
 };
 
-const CanvasObject = ({ obj, onSelect, onChange, stageWidth, stageHeight, zones, autoAlign, alignmentMode }) => {
+const CanvasObject = ({ obj, onSelect, onChange, zones, toggleAutoAlign }) => {
     const shapeRef = useRef();
 
     const dragBoundFunc = (pos) => {
-        // 1. Find the closest zone to the object
-        // Use current mouse pos (pos) as the center approximation since we centered offsets
+        // Enforce strict zone containment
         const cx = pos.x;
         const cy = pos.y;
 
-        // Simple distance check to center of zones
+        // Find closest zone
         let closestZone = zones[0];
         let minDist = Infinity;
 
@@ -77,35 +76,7 @@ const CanvasObject = ({ obj, onSelect, onChange, stageWidth, stageHeight, zones,
             }
         });
 
-        if (!closestZone) return pos;
-
-        // 2. If Auto Align is ON, snap to specific point in that zone
-        if (autoAlign) {
-            let tx = closestZone.x + closestZone.width / 2;
-            let ty = closestZone.y + closestZone.height / 2;
-
-            // Adjust based on alignmentMode
-            // Mode format: 'vertical_horizontal' e.g. 'top_left', 'middle_center'
-            const [v, h] = alignmentMode.split('_');
-
-            // Horizontal
-            if (h === 'left') tx = closestZone.x + 50; // padding
-            else if (h === 'right') tx = closestZone.x + closestZone.width - 50;
-            // else center (already set)
-
-            // Vertical
-            if (v === 'top') ty = closestZone.y + closestZone.height * 0.25; // slightly down from top edge? or just top padding?
-            else if (v === 'bottom') ty = closestZone.y + closestZone.height * 0.75;
-            // else middle (already set)
-
-            return { x: tx, y: ty };
-        }
-
-        // 3. If Auto Align OFF, restrict to bounds of the zone
-        // Object size approximation (bounding box would be better but expensive here)
-        // Assume ~50px radius or use obj data if passed (obj width is not easily known here without node)
-        // Let's use strict point containment for the center (x,y)
-
+        // Restrict to zone
         const constrainedX = Math.max(closestZone.x, Math.min(closestZone.x + closestZone.width, cx));
         const constrainedY = Math.max(closestZone.y, Math.min(closestZone.y + closestZone.height, cy));
 
@@ -116,9 +87,13 @@ const CanvasObject = ({ obj, onSelect, onChange, stageWidth, stageHeight, zones,
         onClick: onSelect,
         onTap: onSelect,
         ...obj,
-        id: obj.id, // CRITICAL: This allows stage.findOne('#id') to work
+        id: obj.id,
         draggable: true,
-        dragBoundFunc, // Apply constraint
+        dragBoundFunc,
+        onDragStart: () => {
+            // AUTO-DISABLE TOGGLE ON INTERACTION
+            toggleAutoAlign(false);
+        },
         onDragEnd: (e) => {
             onChange({
                 x: e.target.x(),
@@ -126,6 +101,7 @@ const CanvasObject = ({ obj, onSelect, onChange, stageWidth, stageHeight, zones,
             });
         },
         onTransformEnd: (e) => {
+            toggleAutoAlign(false); // Also disable on resize/rotate
             const node = shapeRef.current;
             onChange({
                 x: node.x(),
@@ -137,6 +113,7 @@ const CanvasObject = ({ obj, onSelect, onChange, stageWidth, stageHeight, zones,
         },
     };
 
+    // ... (Remainder of render logic is similar, just ensuring props are passed)
     return (
         <React.Fragment>
             {obj.type === 'embroidery' ? (
@@ -147,12 +124,6 @@ const CanvasObject = ({ obj, onSelect, onChange, stageWidth, stageHeight, zones,
                     fontFamily={obj.fontFamily}
                     fontSize={obj.fontSize || 30}
                     fill={obj.color}
-                    // For text, centering is different. offsetX/Y depends on width/height which changes.
-                    // Konva Text handles this better with align='center', but rotation anchor is top-left by default.
-                    // For simpler implementation, let's leave embroidery centering for now unless requested,
-                    // prompt specifically mentioned "letters and patches" for 50x50.
-                    // "fix spacing and alignment on the main product canvas" is general.
-                    // Let's try to center embroidery too if possible.
                     offsetX={shapeRef.current ? shapeRef.current.width() / 2 : 0}
                     offsetY={shapeRef.current ? shapeRef.current.height() / 2 : 0}
                 />
@@ -161,7 +132,7 @@ const CanvasObject = ({ obj, onSelect, onChange, stageWidth, stageHeight, zones,
                     {...commonProps}
                     nodeRef={shapeRef}
                     image={obj.image}
-                    onChange={onChange} // Pass it down
+                    onChange={onChange}
                 />
             )}
         </React.Fragment>
@@ -175,14 +146,15 @@ export function CustomizerCanvas() {
         selectedObjectId,
         selectObject,
         updateObject,
+        setCanvasObjects, // New Batch Update
         addObject,
         removeObject,
         clearCanvas,
         width,
         height,
-        // New State
         showDesignAids,
         autoAlign,
+        toggleAutoAlign,
         alignmentMode
     } = useCustomizerStore();
 
@@ -190,33 +162,22 @@ export function CustomizerCanvas() {
     const transformerRef = useRef(null);
     const [baseImage] = useImage(baseProduct?.image || '', 'anonymous');
 
-    // Calculate Zones based on Product Title
-    // Assumptions based on prompt:
-    // Small -> 1 zone
-    // Medium -> 2 zones
-    // Large -> 3 zones
+    // ... (Zones Logic skipped for brevity in replacement, but included in full)
     const zones = useMemo(() => {
         const title = (baseProduct?.title || '').toLowerCase();
         let zoneList = [];
-
-        // Define zone dimensions (fixed width strip, varying Y)
-        const zoneW = width * 0.8; // 80% width
-        const zoneH = 80; // height of the strip
-        const zoneX = (width - zoneW) / 2; // Center horizontal
+        const zoneW = width * 0.8;
+        const zoneH = 80;
+        const zoneX = (width - zoneW) / 2;
 
         if (title.includes('small')) {
-            // 1 Zone (Center)
-            zoneList = [
-                { id: 'z1', x: zoneX, y: height / 2 - zoneH / 2, width: zoneW, height: zoneH, label: 'Standard Placement' }
-            ];
+            zoneList = [{ id: 'z1', x: zoneX, y: height / 2 - zoneH / 2, width: zoneW, height: zoneH, label: 'Standard Placement' }];
         } else if (title.includes('medium')) {
-            // 2 Zones
             zoneList = [
                 { id: 'z1', x: zoneX, y: height * 0.35, width: zoneW, height: zoneH, label: 'Upper Placement' },
                 { id: 'z2', x: zoneX, y: height * 0.65 - zoneH, width: zoneW, height: zoneH, label: 'Lower Placement' }
             ];
         } else {
-            // Large/Default: 3 Zones
             zoneList = [
                 { id: 'z1', x: zoneX, y: height * 0.25, width: zoneW, height: zoneH, label: 'Top' },
                 { id: 'z2', x: zoneX, y: height * 0.5 - zoneH / 2, width: zoneW, height: zoneH, label: 'Middle' },
@@ -227,11 +188,100 @@ export function CustomizerCanvas() {
     }, [baseProduct, width, height]);
 
 
-    // Handle Selection & Transformer Attachment
+    // --- GLOBAL ALIGNMENT & DISTRIBUTION LOGIC ---
+    useEffect(() => {
+        if (!autoAlign || canvasObjects.length === 0) return;
+
+        // Group objects by Closest Zone
+        const objectsByZone = {};
+        zones.forEach(z => objectsByZone[z.id] = []);
+
+        canvasObjects.forEach(obj => {
+            // Find closest zone
+            let closest = zones[0];
+            let minDist = Infinity;
+            zones.forEach(z => {
+                const zcx = z.x + z.width / 2;
+                const zcy = z.y + z.height / 2;
+                const dist = Math.hypot(obj.x - zcx, obj.y - zcy);
+                if (dist < minDist) {
+                    minDist = dist;
+                    closest = z;
+                }
+            });
+            objectsByZone[closest.id].push(obj);
+        });
+
+        // Distribute within each zone
+        let newObjects = [];
+        const [vMode, hMode] = alignmentMode.split('_'); // top_left, middle_center, bottom_right
+
+        Object.keys(objectsByZone).forEach(zoneId => {
+            const zoneObjs = objectsByZone[zoneId];
+            if (zoneObjs.length === 0) return;
+
+            const zone = zones.find(z => z.id === zoneId);
+
+            // Sort by current X to preserve order (Left to Right)
+            zoneObjs.sort((a, b) => a.x - b.x);
+
+            // Calculate Target Y
+            let targetY = zone.y + zone.height / 2; // Default Middle
+            if (vMode === 'top') targetY = zone.y + zone.height * 0.25;
+            if (vMode === 'bottom') targetY = zone.y + zone.height * 0.75;
+
+            // Calculate Target X Layout
+            const padding = 20; // Increased spacing to prevent overlap
+            // We need width of items. 
+            // Approximation: letters/patches ~50px scaled.
+            // Embroidery width is variable.
+            // Since we don't have bounding boxes here easily without querying Node,
+            // we will use a Fixed Spacing strategy or assume 60px/80px spacing?
+            // "Tidy" implies even spacing. Let's assume an average slot width of 60px.
+            const slotWidth = 60;
+            const totalWidth = zoneObjs.length * slotWidth + (zoneObjs.length - 1) * padding;
+
+            let startX = zone.x + 50; // Default Left
+
+            if (hMode === 'center') {
+                startX = zone.x + (zone.width - totalWidth) / 2 + (slotWidth / 2);
+            } else if (hMode === 'right') {
+                startX = zone.x + zone.width - totalWidth - 50 + (slotWidth / 2);
+            } else {
+                // Left
+                startX = zone.x + 50 + (slotWidth / 2);
+            }
+
+            // Assign Position
+            zoneObjs.forEach((obj, i) => {
+                const newX = startX + i * (slotWidth + padding);
+
+                newObjects.push({
+                    ...obj,
+                    x: newX,
+                    y: targetY,
+                    rotation: 0 // Tidy also resets rotation? Usually yes.
+                });
+            });
+        });
+
+        // Check if anything actually changed to avoid loop
+        const hasChanged = newObjects.some(n => {
+            const old = canvasObjects.find(o => o.id === n.id);
+            return Math.abs(old.x - n.x) > 1 || Math.abs(old.y - n.y) > 1;
+        });
+
+        if (hasChanged) {
+            setCanvasObjects(newObjects);
+        }
+
+    }, [autoAlign, alignmentMode, canvasObjects.length, zones, canvasObjects]); // Dependency on canvasObjects is risky if we update checking equality, but needed for new adds.
+
+
+    // ... (Selection, Drop, Delete, Download handlers - largely unchanged)
     useEffect(() => {
         if (selectedObjectId) {
             const selectedNode = stageRef.current.findOne('#' + selectedObjectId);
-
             if (selectedNode && transformerRef.current) {
                 transformerRef.current.nodes([selectedNode]);
                 transformerRef.current.getLayer().batchDraw();
@@ -247,21 +297,15 @@ export function CustomizerCanvas() {
     const checkDeselect = (e) => {
         const clickedOnEmpty = e.target === e.target.getStage();
         const clickedOnBase = e.target.hasName('base-image');
-
-        if (clickedOnEmpty || clickedOnBase) {
-            selectObject(null);
-        }
+        if (clickedOnEmpty || clickedOnBase) selectObject(null);
     };
 
     const handleDrop = (e) => {
         e.preventDefault();
         stageRef.current.setPointersPositions(e);
-
         const itemData = e.dataTransfer.getData('application/json');
         if (!itemData) return;
-
         const item = JSON.parse(itemData);
-
         const stage = stageRef.current;
         const pointerPosition = stage.getPointerPosition();
 
@@ -274,6 +318,8 @@ export function CustomizerCanvas() {
             scaleY: 1,
             rotation: 0,
         });
+
+        // Note: New object triggers Effect -> Auto Align will grab it if ON.
     };
 
     const handleDeleteSelected = () => {
@@ -285,10 +331,7 @@ export function CustomizerCanvas() {
 
     const handleDownload = () => {
         if (stageRef.current) {
-            // Deselect everything before screenshot
             selectObject(null);
-
-            // Wait a tick for transformer to disappear
             setTimeout(() => {
                 const uri = stageRef.current.toDataURL({ pixelRatio: 2 });
                 const link = document.createElement('a');
@@ -301,123 +344,80 @@ export function CustomizerCanvas() {
         }
     };
 
-    // Get selected object to determine transformer rules
+    // Calculate Base Image Dimensions to Fit & Center
+    let bgImageProps = { image: baseImage };
+    if (baseImage) {
+        const imgRatio = baseImage.width / baseImage.height;
+        const stageRatio = width / height;
+        let newWidth, newHeight;
+
+        // Contain logic
+        if (stageRatio > imgRatio) {
+            newHeight = height;
+            newWidth = baseImage.width * (height / baseImage.height);
+        } else {
+            newWidth = width;
+            newHeight = baseImage.height * (width / baseImage.width);
+        }
+
+        bgImageProps = {
+            ...bgImageProps,
+            width: newWidth,
+            height: newHeight,
+            x: (width - newWidth) / 2,
+            y: (height - newHeight) / 2,
+        };
+    }
+
     const selectedObj = canvasObjects.find(o => o.id === selectedObjectId);
     const isRestrictedType = selectedObj?.type === 'letter' || selectedObj?.type === 'patch';
 
     return (
-        <div
-            className="shadow-lg border border-gray-200 bg-white relative group"
-            onDrop={handleDrop}
-            onDragOver={(e) => e.preventDefault()}
-        >
-            {/* Top Right Controls: Download & Clear */}
+        <div className="shadow-lg border border-gray-200 bg-white relative group" onDrop={handleDrop} onDragOver={(e) => e.preventDefault()}>
             <div className="absolute top-4 right-4 z-20 flex gap-2">
-                <button
-                    onClick={handleDownload}
-                    className="flex items-center gap-2 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold rounded-full transition-colors border border-gray-200"
-                    title="Download Design"
-                >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
-                    DOWNLOAD
+                <button onClick={handleDownload} className="flex items-center gap-2 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold rounded-full transition-colors border border-gray-200">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg> DOWNLOAD
                 </button>
-                <button
-                    onClick={() => {
-                        if (confirm('Are you sure you want to clear the canvas?')) {
-                            clearCanvas();
-                        }
-                    }}
-                    className="flex items-center gap-2 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold rounded-full transition-colors border border-gray-200"
-                    title="Clear All"
-                >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /><line x1="10" y1="11" x2="10" y2="17" /><line x1="14" y1="11" x2="14" y2="17" /></svg>
-                    CLEAR ALL
+                <button onClick={() => { if (confirm('Clear canvas?')) clearCanvas(); }} className="flex items-center gap-2 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold rounded-full transition-colors border border-gray-200">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /><line x1="10" y1="11" x2="10" y2="17" /><line x1="14" y1="11" x2="14" y2="17" /></svg> CLEAR ALL
                 </button>
             </div>
 
-            {/* Delete Button Overlay */}
             {selectedObjectId && (
-                <button
-                    onClick={handleDeleteSelected}
-                    className="absolute top-16 right-4 z-10 bg-white p-2 rounded-full text-red-500 shadow-md hover:bg-red-50 transition-all border border-gray-200"
-                    title="Remove Selected Item"
-                    style={{ top: '4rem' }} // Push down to avoid overlap with new buttons
-                >
+                <button onClick={handleDeleteSelected} className="absolute top-16 right-4 z-10 bg-white p-2 rounded-full text-red-500 shadow-md hover:bg-red-50 transition-all border border-gray-200" style={{ top: '4rem' }}>
                     <X size={20} />
                 </button>
             )}
 
-            <Stage
-                width={width}
-                height={height}
-                onMouseDown={checkDeselect}
-                onTouchStart={checkDeselect}
-                ref={stageRef}
-            >
+            <Stage width={width} height={height} onMouseDown={checkDeselect} onTouchStart={checkDeselect} ref={stageRef}>
                 <Layer>
-                    {/* Base Product Image */}
-                    {baseImage && (
-                        <KonvaImage
-                            name="base-image"
-                            image={baseImage}
-                            width={width}
-                            height={height}
-                            fit="contain"
-                        />
-                    )}
+                    {baseImage && <KonvaImage name="base-image" {...bgImageProps} />}
 
-                    {/* Zones (Show if toggled) */}
                     {showDesignAids && zones.map((zone) => (
-                        <Rect
-                            key={zone.id}
-                            x={zone.x}
-                            y={zone.y}
-                            width={zone.width}
-                            height={zone.height}
-                            stroke="red"
-                            strokeWidth={2}
-                            fill="rgba(255, 0, 0, 0.1)"
-                            dash={[5, 5]}
-                        />
+                        <Rect key={zone.id} x={zone.x} y={zone.y} width={zone.width} height={zone.height} stroke="red" strokeWidth={2} fill="rgba(255, 0, 0, 0.1)" dash={[5, 5]} />
                     ))}
 
-                    {/* Canvas Objects */}
                     {canvasObjects.map((obj) => (
                         <CanvasObject
                             key={obj.id}
                             obj={obj}
                             onSelect={() => selectObject(obj.id)}
                             onChange={(newAttrs) => updateObject(obj.id, newAttrs)}
-                            stageWidth={width}
-                            stageHeight={height}
-                            // Pass Zone Props
                             zones={zones}
-                            autoAlign={autoAlign}
-                            alignmentMode={alignmentMode}
+                            toggleAutoAlign={toggleAutoAlign}
                         />
                     ))}
 
-                    {/* Global Transformer */}
                     <Transformer
                         ref={transformerRef}
                         boundBoxFunc={(oldBox, newBox) => {
                             if (isRestrictedType) {
-                                // STRICT 50px LIMIT (User changed to 100 manually, keeping 100)
-                                if (newBox.width > 100 || newBox.height > 100) {
-                                    return oldBox;
-                                }
+                                if (newBox.width > 100 || newBox.height > 100) return oldBox;
                             }
-
-                            // Check valid bounds
-                            if (newBox.width < 5 || newBox.height < 5) {
-                                return oldBox;
-                            }
+                            if (newBox.width < 5 || newBox.height < 5) return oldBox;
                             return newBox;
                         }}
-                        enabledAnchors={isRestrictedType
-                            ? ['top-left', 'top-right', 'bottom-left', 'bottom-right'] // Corner only for aspect ratio?
-                            : ['top-left', 'top-right', 'bottom-left', 'bottom-right']
-                        }
+                        enabledAnchors={['top-left', 'top-right', 'bottom-left', 'bottom-right']}
                     />
                 </Layer>
             </Stage>

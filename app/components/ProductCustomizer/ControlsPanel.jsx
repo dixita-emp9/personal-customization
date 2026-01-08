@@ -119,21 +119,23 @@ export function ControlsPanel({ product, variants, lettersCollection, patchesCol
 
                         {/* Alignment Dropdown - Only visible if Auto Tidy is ON */}
                         {autoAlign && (
-                            <select
-                                value={alignmentMode}
-                                onChange={(e) => setAlignmentMode(e.target.value)}
-                                className="text-sm border-b border-gray-300 focus:border-pink-500 outline-none py-1 bg-transparent text-pink-600 font-medium cursor-pointer"
-                            >
-                                <option value="top_left">top left</option>
-                                <option value="top_center">top center</option>
-                                <option value="top_right">top right</option>
-                                <option value="middle_left">middle left</option>
-                                <option value="middle_center">middle center</option>
-                                <option value="middle_right">middle right</option>
-                                <option value="bottom_left">bottom left</option>
-                                <option value="bottom_center">bottom center</option>
-                                <option value="bottom_right">bottom right</option>
-                            </select>
+                            <div className="flex gap-2">
+                                <select
+                                    value={alignmentMode}
+                                    onChange={(e) => setAlignmentMode(e.target.value)}
+                                    className="text-sm border-b border-gray-300 focus:border-pink-500 outline-none py-1 bg-transparent text-pink-600 font-medium cursor-pointer"
+                                >
+                                    <option value="top_left">top left</option>
+                                    <option value="top_center">top center</option>
+                                    <option value="top_right">top right</option>
+                                    <option value="middle_left">middle left</option>
+                                    <option value="middle_center">middle center</option>
+                                    <option value="middle_right">middle right</option>
+                                    <option value="bottom_left">bottom left</option>
+                                    <option value="bottom_center">bottom center</option>
+                                    <option value="bottom_right">bottom right</option>
+                                </select>
+                            </div>
                         )}
                     </div>
                 </div>
