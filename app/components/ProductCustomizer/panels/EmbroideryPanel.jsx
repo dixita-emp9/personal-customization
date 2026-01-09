@@ -24,7 +24,8 @@ const COLORS = [
 ];
 
 export function EmbroideryPanel() {
-    const { embroideryState, updateEmbroideryState, enableEmbroidery } = useCustomizerStore();
+    const { baseProduct, embroideryState, updateEmbroideryState, enableEmbroidery } = useCustomizerStore();
+    const maxChars = baseProduct?.maxCharacters || 30;
 
     useEffect(() => {
         enableEmbroidery();
@@ -47,15 +48,7 @@ export function EmbroideryPanel() {
 
     return (
         <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-300">
-            {/* Instructional Banner */}
-            <div className="bg-pink-50 text-pink-700 p-4 rounded-lg text-sm border border-pink-100">
-                <p className="font-medium">Embroidery Rules:</p>
-                <ul className="list-disc list-inside mt-1 space-y-1 opacity-80">
-                    <li>Max 12 characters per line</li>
-                    <li>Case sensitive (A-Z, 0-9)</li>
-                    <li>Only ONE embroidery allowed</li>
-                </ul>
-            </div>
+
 
             {/* Text Input */}
             <div>
@@ -67,12 +60,12 @@ export function EmbroideryPanel() {
                         type="text"
                         value={embroideryState.text}
                         onChange={(e) => handleChange('text', e.target.value)}
-                        maxLength={12}
+                        maxLength={maxChars}
                         placeholder="Type here..."
                         className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-pink-500 focus:border-pink-500 outline-none transition-all"
                     />
                     <span className="absolute right-3 top-3 text-xs text-gray-400">
-                        {embroideryState.text.length}/12
+                        {embroideryState.text.length}/{maxChars}
                     </span>
                 </div>
             </div>

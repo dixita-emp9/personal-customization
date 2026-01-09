@@ -4,7 +4,7 @@ import { Upload, X } from 'lucide-react';
 import useCustomizerStore from '../../../store/useCustomizerStore';
 
 export function VinylPanel() {
-    const { vinylState, setVinylImage } = useCustomizerStore();
+    const { baseProduct, vinylState, setVinylImage } = useCustomizerStore();
 
     const onDrop = useCallback((acceptedFiles) => {
         const file = acceptedFiles[0];
@@ -27,12 +27,12 @@ export function VinylPanel() {
 
     return (
         <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
-            <div className="bg-pink-50 text-pink-700 p-4 rounded-lg text-sm border border-pink-100">
-                <p className="font-medium">Cricut / Vinyl Transfer</p>
-                <p className="mt-1 opacity-80">
-                    Just type the words or logo you would like and we will do the rest. Upload your design below.
-                </p>
-            </div>
+            {baseProduct?.cricutText && (
+                <div className="p-4 bg-blue-50 border border-blue-100 rounded-xl text-xs text-blue-700 leading-relaxed italic">
+                    {baseProduct.cricutText}
+                </div>
+            )}
+
 
             {!vinylState.image ? (
                 <div

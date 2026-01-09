@@ -69,10 +69,23 @@ const useCustomizerStore = create((set, get) => ({
 
     setMode: (mode) => set({ mode, selectedObjectId: null }),
 
-    addObject: (object) => set((state) => ({
-        canvasObjects: [...state.canvasObjects, object],
-        selectedObjectId: object.id
-    })),
+    addObject: (object) => set((state) => {
+        const isLetterOrPatch = object.type === 'letter' || object.type === 'patch';
+        let newObjects = state.canvasObjects;
+        let embroideryEnabled = state.isEmbroideryEnabled;
+
+        if (isLetterOrPatch) {
+            // Automatically remove embroidery if adding letters/patches
+            newObjects = state.canvasObjects.filter(obj => obj.type !== 'embroidery');
+            embroideryEnabled = false;
+        }
+
+        return {
+            canvasObjects: [...newObjects, object],
+            selectedObjectId: object.id,
+            isEmbroideryEnabled: embroideryEnabled
+        };
+    }),
 
     setCanvasObjects: (objects) => set({ canvasObjects: objects }),
 
@@ -93,6 +106,9 @@ const useCustomizerStore = create((set, get) => ({
     enableEmbroidery: () => {
         const state = get();
         if (!state.isEmbroideryEnabled) {
+            // Remove letters and patches if enabling embroidery
+            const filteredObjects = state.canvasObjects.filter(obj => obj.type !== 'letter' && obj.type !== 'patch');
+
             // Add initial embroidery object to canvas if not present
             const id = 'embroidery-main';
             const newObject = {
@@ -107,7 +123,7 @@ const useCustomizerStore = create((set, get) => ({
             };
             set({
                 isEmbroideryEnabled: true,
-                canvasObjects: [...state.canvasObjects, newObject],
+                canvasObjects: [...filteredObjects, newObject],
                 selectedObjectId: id
             });
         }

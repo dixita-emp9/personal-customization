@@ -1,8 +1,16 @@
 import { useState, useMemo } from 'react';
 import { ChevronLeft } from 'lucide-react';
 import { clsx } from 'clsx';
+import useCustomizerStore from '../../../store/useCustomizerStore';
 
 export function LettersPatchesPanel({ lettersCollection, patchesCollection }) {
+    const {
+        baseProduct,
+        autoAlign, toggleAutoAlign,
+        alignmentMode, setAlignmentMode,
+        showDesignAids, toggleDesignAids
+    } = useCustomizerStore();
+
     const [activeTab, setActiveTab] = useState('letters'); // 'letters' | 'patches'
     const [selectedProduct, setSelectedProduct] = useState(null); // The selected product (e.g., Letter A)
     const [globalColorFilter, setGlobalColorFilter] = useState(null); // 'Red', 'Blue', etc.
@@ -37,7 +45,7 @@ export function LettersPatchesPanel({ lettersCollection, patchesCollection }) {
 
     // Level 1: Grid of all products (e.g. A, B, C...)
     const renderProductGrid = () => (
-        <div className="grid grid-cols-4 gap-3">
+        <div className="grid grid-cols-6 gap-2">
             {activeProducts.map((product) => {
                 // Find variant matching global filter, or default to first
                 const variantToShow = globalColorFilter
@@ -51,9 +59,9 @@ export function LettersPatchesPanel({ lettersCollection, patchesCollection }) {
                     <button
                         key={product.id}
                         onClick={() => setSelectedProduct(product)}
-                        className="flex flex-col items-center gap-1 p-2 rounded-lg border border-gray-100 hover:border-pink-300 hover:bg-pink-50 transition-all group"
+                        className="flex flex-col items-center gap-1 transition-all group p-1"
                     >
-                        <div className="aspect-square w-full bg-white rounded-md flex items-center justify-center overflow-hidden">
+                        <div className="aspect-square w-full flex items-center justify-center overflow-hidden">
                             {variantToShow?.image && (
                                 <img
                                     src={variantToShow.image.url}
@@ -62,7 +70,7 @@ export function LettersPatchesPanel({ lettersCollection, patchesCollection }) {
                                 />
                             )}
                         </div>
-                        <span className="text-xs font-medium text-gray-700 truncate w-full text-center">
+                        <span className="text-[10px] text-gray-600 truncate w-full text-center">
                             {product.title}
                         </span>
                     </button>
@@ -88,7 +96,7 @@ export function LettersPatchesPanel({ lettersCollection, patchesCollection }) {
                     <h3 className="font-bold text-lg text-gray-900 mb-2">{selectedProduct.title}</h3>
                     <p className="text-sm text-gray-500 mb-4">Select a color/variant:</p>
 
-                    <div className="grid grid-cols-4 gap-3 mb-6">
+                    <div className="grid grid-cols-6 gap-2 mb-6">
                         {selectedProduct.variants.nodes.map((variant) => (
                             <div
                                 key={variant.id}
@@ -107,9 +115,9 @@ export function LettersPatchesPanel({ lettersCollection, patchesCollection }) {
                                 )}
                             >
                                 {variant.image && (
-                                    <img src={variant.image.url} alt={variant.title} className="w-full h-full object-contain p-2" />
+                                    <img src={variant.image.url} alt={variant.title} className="w-full h-full object-contain p-1" />
                                 )}
-                                <span className="text-[10px] text-gray-500 pb-1 px-1 truncate w-full text-center">{variant.title}</span>
+                                <span className="text-[8px] text-gray-500 pb-0.5 px-0.5 truncate w-full text-center">{variant.title}</span>
                             </div>
                         ))}
                     </div>
@@ -120,7 +128,7 @@ export function LettersPatchesPanel({ lettersCollection, patchesCollection }) {
                         <h4 className="font-medium text-gray-900 mb-3 text-sm">
                             Other {activeTab} in "{globalColorFilter}"
                         </h4>
-                        <div className="grid grid-cols-4 gap-3">
+                        <div className="grid grid-cols-6 gap-2">
                             {activeProducts
                                 .filter(p => p.id !== selectedProduct.id) // Exclude current
                                 .map(product => {
@@ -157,6 +165,11 @@ export function LettersPatchesPanel({ lettersCollection, patchesCollection }) {
 
     return (
         <div className="flex flex-col h-full animate-in fade-in zoom-in-95 duration-200">
+            {/* {baseProduct?.lettersAndPatchesText && (
+                <div className="mb-4 p-4 bg-blue-50 border border-blue-100 rounded-xl text-xs text-blue-700 leading-relaxed italic">
+                    {baseProduct.lettersAndPatchesText}
+                </div>
+            )} */}
             {/* Tabs */}
             <div className="flex p-1 bg-gray-100 rounded-lg mb-6">
                 <button
@@ -180,8 +193,61 @@ export function LettersPatchesPanel({ lettersCollection, patchesCollection }) {
             </div>
 
             {/* Content */}
-            <div className="flex-1">
+            <div className="flex-1 overflow-y-auto">
                 {selectedProduct ? renderProductDetail() : renderProductGrid()}
+            </div>
+
+            {/* Toggles - Visible only in Letters & Patches tab */}
+            <div className="mt-6 pt-6 border-t border-gray-100 space-y-4">
+                <div className="flex flex-col gap-2">
+                    <div className="flex items-center justify-between">
+                        <label className="flex items-center gap-2 text-sm font-medium text-gray-700 cursor-pointer">
+                            <div className="relative inline-flex items-center cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    checked={autoAlign}
+                                    onChange={(e) => toggleAutoAlign(e.target.checked)}
+                                    className="sr-only peer"
+                                />
+                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-pink-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-pink-500"></div>
+                            </div>
+                            <span>Automatically tidy and align</span>
+                        </label>
+
+                        {autoAlign && (
+                            <div className="flex gap-2">
+                                <select
+                                    value={alignmentMode}
+                                    onChange={(e) => setAlignmentMode(e.target.value)}
+                                    className="text-sm border-b border-gray-300 focus:border-pink-500 outline-none py-1 bg-transparent text-pink-600 font-medium cursor-pointer"
+                                >
+                                    <option value="top_left">top left</option>
+                                    <option value="top_center">top center</option>
+                                    <option value="top_right">top right</option>
+                                    <option value="middle_left">middle left</option>
+                                    <option value="middle_center">middle center</option>
+                                    <option value="middle_right">middle right</option>
+                                    <option value="bottom_left">bottom left</option>
+                                    <option value="bottom_center">bottom center</option>
+                                    <option value="bottom_right">bottom right</option>
+                                </select>
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                <label className="flex items-center gap-2 text-sm font-medium text-gray-700 cursor-pointer">
+                    <div className="relative inline-flex items-center cursor-pointer">
+                        <input
+                            type="checkbox"
+                            checked={showDesignAids}
+                            onChange={(e) => toggleDesignAids(e.target.checked)}
+                            className="sr-only peer"
+                        />
+                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-pink-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-pink-500"></div>
+                    </div>
+                    <span>Show design aids</span>
+                </label>
             </div>
         </div>
     );

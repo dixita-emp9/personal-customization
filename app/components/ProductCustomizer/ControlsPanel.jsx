@@ -3,7 +3,7 @@ import { ChevronDown, ChevronUp } from 'lucide-react';
 import useCustomizerStore from '../../store/useCustomizerStore';
 import { AddToCartButton } from '~/components/AddToCartButton';
 import { clsx } from 'clsx';
-// Import Panels (will create these next)
+// Import Panels
 import { LettersPatchesPanel } from './panels/LettersPatchesPanel';
 import { EmbroideryPanel } from './panels/EmbroideryPanel';
 import { VinylPanel } from './panels/VinylPanel';
@@ -20,11 +20,8 @@ export function ControlsPanel({ product, variants, lettersCollection, patchesCol
     const {
         mode, setMode, baseProduct, canvasObjects, vinylState,
         isEmbroideryEnabled, embroideryState,
-        showDesignAids, toggleDesignAids,
-        autoAlign, toggleAutoAlign,
-        alignmentMode, setAlignmentMode
     } = useCustomizerStore();
-    const [isOpen, setIsOpen] = useState(true);
+    const [isOpen, setIsOpen] = useState(false);
 
     const renderActivePanel = () => {
         switch (mode) {
@@ -41,10 +38,9 @@ export function ControlsPanel({ product, variants, lettersCollection, patchesCol
         }
     };
 
-    // Calculate Total Price
+    // --- PRICE CALCULATION ---
     const customizationTotal = canvasObjects.reduce((acc, obj) => {
         let price = obj.price;
-        // Fallback for vinyl if price isn't stamped on object
         if (obj.type === 'vinyl' && (price === undefined || price === null)) {
             price = vinylState?.price || 60.00;
         }
@@ -53,28 +49,78 @@ export function ControlsPanel({ product, variants, lettersCollection, patchesCol
 
     const totalPrice = (baseProduct?.price || 0) + customizationTotal;
 
+    // --- OPTIONS FILTERING ---
+    const activeOptions = OPTIONS.filter(opt => {
+        if (opt.id === 'letters_patches') return baseProduct?.isLPEnabled !== false;
+        if (opt.id === 'vinyl') return baseProduct?.isCricutEnabled !== false;
+        return true;
+    });
+
+    // --- VALIDATION LOGIC ---
+    const maxChars = baseProduct?.maxCharacters || 30;
+    const maxLines = baseProduct?.maxLines || 1;
+    const maxItemsPerLine = baseProduct?.maxItemsPerLine || 4;
+
+    const isEmbroideryValid = !isEmbroideryEnabled || embroideryState.text.length <= maxChars;
+
+    const lpObjects = canvasObjects.filter(obj => obj.type === 'letter' || obj.type === 'patch');
+    const groupedLines = [];
+    [...lpObjects].sort((a, b) => a.y - b.y).forEach(obj => {
+        let added = false;
+        for (let line of groupedLines) {
+            if (Math.abs(line[0].y - obj.y) < 30) {
+                line.push(obj);
+                added = true;
+                break;
+            }
+        }
+        if (!added) groupedLines.push([obj]);
+    });
+
+    const lineCount = groupedLines.length;
+    const maxItemsUsed = groupedLines.length > 0 ? Math.max(...groupedLines.map(l => l.length)) : 0;
+    const isLPValid = lineCount <= maxLines && maxItemsUsed <= maxItemsPerLine;
+
+    const isBlocked = !isEmbroideryValid || (lpObjects.length > 0 && !isLPValid);
+
     return (
         <div className="flex flex-col h-full">
             {/* Product Info Header */}
             <div className="p-6 border-b border-gray-100">
-                <h1 className="text-2xl font-bold text-gray-900 mb-2">{baseProduct?.title || 'Product'}</h1>
-                <p className="text-gray-500 mb-4">Customize your unique product below.</p>
+                <h1 className="text-2xl font-bold text-gray-900 mb-2">{baseProduct?.title || product.title || 'Product'}</h1>
 
-                {/* Dropdown Selector for Mode */}
+                {mode === 'color' && (
+                    <div className="space-y-1 mb-4">
+                        {product.material?.value && (
+                            <div className="flex gap-2 text-sm text-gray-600">
+                                <span className="font-semibold">Material</span>
+                                <span>{product.material.value}</span>
+                            </div>
+                        )}
+                        {product.dimensions?.value && (
+                            <div className="flex gap-2 text-sm text-gray-600">
+                                <span className="font-semibold">Dimensions</span>
+                                <span>{product.dimensions.value}</span>
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {/* Dropdown Selector */}
                 <div className="relative">
                     <button
                         onClick={() => setIsOpen(!isOpen)}
                         className="w-full flex items-center justify-between p-4 bg-white border border-gray-300 rounded-lg hover:border-pink-50 transition-colors"
                     >
                         <span className="font-medium text-gray-700">
-                            {OPTIONS.find(o => o.id === mode)?.label}
+                            {activeOptions.find(o => o.id === mode)?.label || 'Select Personalisation'}
                         </span>
                         {isOpen ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
                     </button>
 
                     {isOpen && (
                         <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-xl z-20 overflow-hidden">
-                            {OPTIONS.map((opt) => (
+                            {activeOptions.map((opt) => (
                                 <button
                                     key={opt.id}
                                     onClick={() => {
@@ -99,64 +145,20 @@ export function ControlsPanel({ product, variants, lettersCollection, patchesCol
                 {renderActivePanel()}
             </div>
 
-            {/* Toggles & Customization Controls */}
-            <div className="p-6 bg-white border-t border-gray-100 space-y-4">
-                {/* Auto Tidy Toggle */}
-                <div className="flex flex-col gap-2">
-                    <div className="flex items-center justify-between">
-                        <label className="flex items-center gap-2 text-sm font-medium text-gray-700 cursor-pointer">
-                            <div className="relative inline-flex items-center cursor-pointer">
-                                <input
-                                    type="checkbox"
-                                    checked={autoAlign}
-                                    onChange={(e) => toggleAutoAlign(e.target.checked)}
-                                    className="sr-only peer"
-                                />
-                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-pink-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-pink-500"></div>
-                            </div>
-                            <span>Automatically tidy and align</span>
-                        </label>
-
-                        {/* Alignment Dropdown - Only visible if Auto Tidy is ON */}
-                        {autoAlign && (
-                            <div className="flex gap-2">
-                                <select
-                                    value={alignmentMode}
-                                    onChange={(e) => setAlignmentMode(e.target.value)}
-                                    className="text-sm border-b border-gray-300 focus:border-pink-500 outline-none py-1 bg-transparent text-pink-600 font-medium cursor-pointer"
-                                >
-                                    <option value="top_left">top left</option>
-                                    <option value="top_center">top center</option>
-                                    <option value="top_right">top right</option>
-                                    <option value="middle_left">middle left</option>
-                                    <option value="middle_center">middle center</option>
-                                    <option value="middle_right">middle right</option>
-                                    <option value="bottom_left">bottom left</option>
-                                    <option value="bottom_center">bottom center</option>
-                                    <option value="bottom_right">bottom right</option>
-                                </select>
-                            </div>
-                        )}
-                    </div>
-                </div>
-
-                {/* Show Design Aids Toggle */}
-                <label className="flex items-center gap-2 text-sm font-medium text-gray-700 cursor-pointer">
-                    <div className="relative inline-flex items-center cursor-pointer">
-                        <input
-                            type="checkbox"
-                            checked={showDesignAids}
-                            onChange={(e) => toggleDesignAids(e.target.checked)}
-                            className="sr-only peer"
-                        />
-                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-pink-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-pink-500"></div>
-                    </div>
-                    <span>Show design aids</span>
-                </label>
-            </div>
-
             {/* Footer / Cart Actions */}
             <div className="p-6 bg-white border-t border-gray-200 mt-auto">
+                {/* Error Messaging */}
+                {!isEmbroideryValid && (
+                    <div className="mb-4 p-3 bg-red-50 border border-red-100 rounded-lg text-xs text-red-600 font-medium animate-in fade-in slide-in-from-bottom-2">
+                        You can have a maximum of {maxChars} embroidery characters.
+                    </div>
+                )}
+                {lpObjects.length > 0 && !isLPValid && (
+                    <div className="mb-4 p-3 bg-red-50 border border-red-100 rounded-lg text-xs text-red-600 font-medium animate-in fade-in slide-in-from-bottom-2">
+                        You can have a maximum of {maxLines} lines and {maxItemsPerLine} items per line. Make sure all items are aligned.
+                    </div>
+                )}
+
                 <div className="flex items-center justify-between mb-4">
                     <span className="text-gray-600">Subtotal:</span>
                     <span className="text-xl font-bold text-gray-900">
@@ -167,7 +169,14 @@ export function ControlsPanel({ product, variants, lettersCollection, patchesCol
                 <div className="flex gap-3">
                     <button
                         className="flex-1 py-3 px-6 border border-gray-300 rounded-full font-medium text-gray-700 hover:bg-gray-50 transition-colors"
-                        onClick={() => window.history.back()}
+                        onClick={() => {
+                            if (mode !== 'color') {
+                                setMode('color');
+                                setIsOpen(false);
+                            } else {
+                                window.history.back();
+                            }
+                        }}
                     >
                         Back
                     </button>
@@ -175,20 +184,16 @@ export function ControlsPanel({ product, variants, lettersCollection, patchesCol
                     <div className="flex-[2]">
                         <AddToCartButton
                             lines={[
-                                // 1. Base Product Line
                                 {
                                     merchandiseId: baseProduct?.variantId,
                                     quantity: 1,
                                     attributes: [
-                                        // Metadata references
                                         { key: 'Total_Items', value: `${canvasObjects.length}` },
                                         { key: 'Customization_Ref', value: `Ref-${Date.now()}` },
-                                        // Informational only - real products added below
                                         ...(isEmbroideryEnabled ? [{ key: 'Includes_Embroidery', value: 'Yes' }] : []),
                                         ...(vinylState.image ? [{ key: 'Includes_Vinyl', value: 'Yes' }] : [])
                                     ]
                                 },
-                                // 2. Embroidery Product Line (Dynamic)
                                 ...(isEmbroideryEnabled && embroideryProduct?.selectedOrFirstAvailableVariant?.id ? [
                                     {
                                         merchandiseId: embroideryProduct.selectedOrFirstAvailableVariant.id,
@@ -201,20 +206,16 @@ export function ControlsPanel({ product, variants, lettersCollection, patchesCol
                                         ]
                                     }
                                 ] : []),
-                                // 3. Cricut/Vinyl Product Line (Dynamic)
                                 ...(vinylState.image && cricutProduct?.selectedOrFirstAvailableVariant?.id ? [
                                     {
                                         merchandiseId: cricutProduct.selectedOrFirstAvailableVariant.id,
                                         quantity: 1,
                                         attributes: [
                                             { key: 'Filename', value: vinylState.filename || 'Uploaded Image' },
-                                            // Ideally we'd pass the image URL if uploaded, but for now we rely on filename/session
-                                            // In a real app, we might upload to Shopify or external storage first.
                                             { key: 'Parent_Ref', value: `Ref-${Date.now()}` }
                                         ]
                                     }
                                 ] : []),
-                                // 4. Letters & Patches Lines
                                 ...canvasObjects
                                     .filter(obj => (obj.type === 'letter' || obj.type === 'patch') && obj.variantId)
                                     .map(obj => ({
@@ -229,10 +230,13 @@ export function ControlsPanel({ product, variants, lettersCollection, patchesCol
                                         ]
                                     }))
                             ]}
-                            disabled={!baseProduct}
+                            disabled={!baseProduct || isBlocked}
                             redirectTo="/cart"
                         >
-                            <div className="w-full h-full flex items-center justify-center bg-pink-500 text-white rounded-full font-bold hover:bg-pink-600 transition-colors shadow-lg shadow-pink-200 uppercase text-sm tracking-wide cursor-pointer py-3">
+                            <div className={clsx(
+                                "w-full h-full flex items-center justify-center rounded-full font-bold transition-colors shadow-lg uppercase text-sm tracking-wide py-3",
+                                isBlocked ? "bg-gray-200 text-gray-400 cursor-not-allowed shadow-none" : "bg-pink-500 text-white hover:bg-pink-600 shadow-pink-200 cursor-pointer"
+                            )}>
                                 Add to Bag
                             </div>
                         </AddToCartButton>

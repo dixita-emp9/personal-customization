@@ -243,6 +243,17 @@ const PRODUCT_VARIANT_FRAGMENT = `#graphql
       amount
       currencyCode
     }
+    personaliser_preview_image: metafield(namespace: "tht", key: "personaliser_preview_image") {
+      reference {
+        ... on MediaImage {
+          image {
+            url
+            width
+            height
+          }
+        }
+      }
+    }
   }
 `;
 
@@ -289,6 +300,36 @@ const PRODUCT_FRAGMENT = `#graphql
       }
     }
     personalisable: metafield(namespace: "tht", key: "personalisable") {
+      value
+    }
+    dimensions: metafield(namespace: "tht", key: "dimensions") {
+      value
+    }
+    material: metafield(namespace: "tht", key: "material") {
+      value
+    }
+    guidelines: metafield(namespace: "tht", key: "guidelines") {
+      value
+    }
+    guidelines_cricut: metafield(namespace: "tht", key: "guidelines_cricut") {
+      value
+    }
+    guidelines_embroidery: metafield(namespace: "tht", key: "guidelines_embroidery") {
+      value
+    }
+    letters_and_patches: metafield(namespace: "tht", key: "letters_and_patches") {
+      value
+    }
+    max_characters: metafield(namespace: "tht", key: "max_characters") {
+      value
+    }
+    small_combo: metafield(namespace: "tht", key: "small_combo") {
+      value
+    }
+    lines: metafield(namespace: "tht", key: "lines") {
+      value
+    }
+    cricut: metafield(namespace: "tht", key: "cricut") {
       value
     }
   }

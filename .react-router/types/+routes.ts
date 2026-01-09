@@ -262,7 +262,7 @@ type RouteFiles = {
     page: "/*";
   };
   "../node_modules/@shopify/hydrogen/dist/vite/virtual-routes/layout.jsx": {
-    id: "/Users/fenmac1/Downloads/personal-customization/node_modules/@shopify/hydrogen/dist/vite/virtual-routes/layout";
+    id: "/Users/fenmac1/www/personal-customization/node_modules/@shopify/hydrogen/dist/vite/virtual-routes/layout";
     page: "/graphiql" | "/subrequest-profiler" | "/.well-known/appspecific/com.chrome.devtools.json" | "/";
   };
   "../node_modules/@shopify/hydrogen/dist/vite/virtual-routes/routes/graphiql.jsx": {

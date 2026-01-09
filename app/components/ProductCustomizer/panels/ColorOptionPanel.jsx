@@ -13,13 +13,15 @@ export function ColorOptionPanel({ product, variants }) {
     // We'll trust proper data is passed or we extract from variants.
 
     const handleVariantChange = (variant) => {
+        const metafieldImg = variant?.personaliser_preview_image?.reference?.image?.url;
+        const imageUrl = metafieldImg || variant.image?.url;
+
         // Update the base product in store
         setBaseProduct({
             ...baseProduct,
-            id: product.id,
-            image: variant.image?.url,
+            image: imageUrl,
             price: parseFloat(variant.price?.amount || 0),
-            selectedVariantId: variant.id,
+            variantId: variant.id, // Consistent with ProductCustomizer
             selectedColor: variant.selectedOptions.find(o => o.name === 'Color')?.value
         });
     };
@@ -31,7 +33,12 @@ export function ColorOptionPanel({ product, variants }) {
                 <div className="grid grid-cols-4 gap-4">
                     {product?.variants?.nodes?.map((variant) => {
                         const colorValue = variant.selectedOptions.find(o => o.name === 'Color')?.value || variant.title;
-                        const isSelected = baseProduct?.image === variant.image?.url;
+
+                        // Check if this variant is selected using ID
+                        const isSelected = baseProduct?.variantId === variant.id;
+
+                        // Priority: metafield image, fallback to variant image
+                        const previewImg = variant.personaliser_preview_image?.reference?.image?.url || variant.image?.url;
 
                         return (
                             <button
@@ -43,8 +50,7 @@ export function ColorOptionPanel({ product, variants }) {
                                 )}
                             >
                                 <div className="w-12 h-12 rounded-full overflow-hidden border border-gray-100 shadow-sm relative">
-                                    {/* If we had color codes we'd use bg color, else image */}
-                                    <img src={variant.image?.url} alt={colorValue} className="w-full h-full object-cover" />
+                                    <img src={previewImg} alt={colorValue} className="w-full h-full object-cover" />
                                 </div>
                                 <span className="text-xs text-center font-medium text-gray-700 truncate w-full">
                                     {colorValue}
