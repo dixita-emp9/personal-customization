@@ -1,5 +1,5 @@
-import { useLoaderData } from 'react-router';
-import { useState } from 'react';
+import { useLoaderData, useSearchParams } from 'react-router';
+import { useState, useEffect } from 'react';
 import {
   getSelectedProductOptions,
   Analytics,
@@ -121,7 +121,17 @@ function loadDeferredData({ context, params }) {
 export default function Product() {
   /** @type {LoaderReturnData} */
   const { product, lettersCollection, patchesCollection, embroideryProduct, cricutProduct, initialsProduct, nameProduct, freeNameProduct } = useLoaderData();
-  const [isCustomizing, setIsCustomizing] = useState(false);
+  const [searchParams] = useSearchParams();
+  const [isCustomizing, setIsCustomizing] = useState(
+    searchParams.has('personalise') || searchParams.has('customize')
+  );
+
+  // Sync state with URL params (handles client-side navigation and ensures sync)
+  useEffect(() => {
+    if (searchParams.has('personalise') || searchParams.has('customize')) {
+      setIsCustomizing(true);
+    }
+  }, [searchParams]);
 
   // Optimistically selects a variant with given available variant information
   const selectedVariant = useOptimisticVariant(
@@ -381,7 +391,7 @@ const PRODUCT_QUERY = `#graphql
 `;
 
 const COLLECTION_QUERY = `#graphql
-  query Collection($handle: String!) {
+  query ProductRelatedCollection($handle: String!) {
     collection(handle: $handle) {
       id
       title
