@@ -58,7 +58,10 @@ async function loadCriticalData({ context, params, request }) {
     { collection: lettersCollection },
     { collection: patchesCollection },
     { product: embroideryProduct },
-    { product: cricutProduct }
+    { product: cricutProduct },
+    { product: initialsProduct },
+    { product: nameProduct },
+    { product: freeNameProduct }
   ] = await Promise.all([
     storefront.query(PRODUCT_QUERY, {
       variables: { handle, selectedOptions: getSelectedProductOptions(request) },
@@ -75,6 +78,15 @@ async function loadCriticalData({ context, params, request }) {
     storefront.query(PRODUCT_QUERY, {
       variables: { handle: 'cricut', selectedOptions: [] } // 'cricut' from URL
     }),
+    storefront.query(PRODUCT_QUERY, {
+      variables: { handle: 'initials', selectedOptions: [] }
+    }),
+    storefront.query(PRODUCT_QUERY, {
+      variables: { handle: 'name', selectedOptions: [] }
+    }),
+    storefront.query(PRODUCT_QUERY, {
+      variables: { handle: 'free-name', selectedOptions: [] }
+    }),
   ]);
 
   if (!product?.id) {
@@ -89,7 +101,10 @@ async function loadCriticalData({ context, params, request }) {
     lettersCollection,
     patchesCollection,
     embroideryProduct,
-    cricutProduct
+    cricutProduct,
+    initialsProduct,
+    nameProduct,
+    freeNameProduct
   };
 }
 
@@ -105,7 +120,7 @@ function loadDeferredData({ context, params }) {
 
 export default function Product() {
   /** @type {LoaderReturnData} */
-  const { product, lettersCollection, patchesCollection, embroideryProduct, cricutProduct } = useLoaderData();
+  const { product, lettersCollection, patchesCollection, embroideryProduct, cricutProduct, initialsProduct, nameProduct, freeNameProduct } = useLoaderData();
   const [isCustomizing, setIsCustomizing] = useState(false);
 
   // Optimistically selects a variant with given available variant information
@@ -147,6 +162,9 @@ export default function Product() {
           patchesCollection={patchesCollection}
           embroideryProduct={embroideryProduct}
           cricutProduct={cricutProduct}
+          initialsProduct={initialsProduct}
+          nameProduct={nameProduct}
+          freeNameProduct={freeNameProduct}
         />
       </div>
     );
@@ -323,6 +341,15 @@ const PRODUCT_FRAGMENT = `#graphql
     max_characters: metafield(namespace: "tht", key: "max_characters") {
       value
     }
+    initials: metafield(namespace: "tht", key: "initials") {
+      value
+    }
+    name: metafield(namespace: "tht", key: "name") {
+      value
+    }
+    free_name: metafield(namespace: "tht", key: "free_name") {
+      value
+    }
     small_combo: metafield(namespace: "tht", key: "small_combo") {
       value
     }
@@ -330,6 +357,9 @@ const PRODUCT_FRAGMENT = `#graphql
       value
     }
     cricut: metafield(namespace: "tht", key: "cricut") {
+      value
+    }
+    embroidery: metafield(namespace: "tht", key: "embroidery") {
       value
     }
   }

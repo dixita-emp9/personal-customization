@@ -65,6 +65,9 @@ const useCustomizerStore = create((set, get) => ({
         price: 60.00
     },
 
+    simpleText: '',
+    setSimpleText: (text) => set({ simpleText: text }),
+
     setBaseProduct: (product) => set({ baseProduct: product }),
 
     setMode: (mode) => set({ mode, selectedObjectId: null }),
@@ -194,6 +197,7 @@ const useCustomizerStore = create((set, get) => ({
         isEmbroideryEnabled: false,
         vinylState: { image: null, filename: null, price: 60.00 },
         embroideryState: { text: '', fontFamily: 'Lucida', color: 'Black', price: 80.00 },
+        simpleText: '',
 
         // Design Aids & Alignment State
         showDesignAids: false,

@@ -15,7 +15,7 @@ function ClientOnly({ children, fallback = null }) {
     return mounted ? children() : fallback;
 }
 
-function ProductCustomizerClient({ product, variants, lettersCollection, patchesCollection, embroideryProduct, cricutProduct }) {
+function ProductCustomizerClient({ product, variants, lettersCollection, patchesCollection, embroideryProduct, cricutProduct, initialsProduct, nameProduct, freeNameProduct }) {
     const { mode } = useCustomizerStore();
 
     const getGuidelines = () => {
@@ -68,6 +68,9 @@ function ProductCustomizerClient({ product, variants, lettersCollection, patches
                         patchesCollection={patchesCollection}
                         embroideryProduct={embroideryProduct}
                         cricutProduct={cricutProduct}
+                        initialsProduct={initialsProduct}
+                        nameProduct={nameProduct}
+                        freeNameProduct={freeNameProduct}
                     />
                 </Suspense>
             </div>
@@ -75,7 +78,7 @@ function ProductCustomizerClient({ product, variants, lettersCollection, patches
     );
 }
 
-export function ProductCustomizer({ product, variants, selectedVariant, lettersCollection, patchesCollection, embroideryProduct, cricutProduct }) {
+export function ProductCustomizer({ product, variants, selectedVariant, lettersCollection, patchesCollection, embroideryProduct, cricutProduct, initialsProduct, nameProduct, freeNameProduct }) {
     const { setBaseProduct } = useCustomizerStore();
 
     useEffect(() => {
@@ -140,7 +143,11 @@ export function ProductCustomizer({ product, variants, selectedVariant, lettersC
 
                 // Enable/Disable flags
                 isLPEnabled: product.letters_and_patches?.value && product.letters_and_patches?.value !== 'false',
-                isCricutEnabled: product.cricut?.value && product.cricut?.value !== 'false'
+                isCricutEnabled: product.cricut?.value && product.cricut?.value !== 'false',
+                isInitialsEnabled: product.initials?.value === 'true',
+                isNameEnabled: product.name?.value === 'true',
+                isFreeNameEnabled: product.free_name?.value === 'true',
+                isEmbroideryOptionEnabled: product.embroidery?.value?.toLowerCase() === 'true'
             });
         }
     }, [product, selectedVariant, setBaseProduct]);
@@ -155,6 +162,9 @@ export function ProductCustomizer({ product, variants, selectedVariant, lettersC
                     patchesCollection={patchesCollection}
                     embroideryProduct={embroideryProduct}
                     cricutProduct={cricutProduct}
+                    initialsProduct={initialsProduct}
+                    nameProduct={nameProduct}
+                    freeNameProduct={freeNameProduct}
                 />
             )}
         </ClientOnly>

@@ -16,14 +16,55 @@ const OPTIONS = [
     { id: 'vinyl', label: 'Cricut/Vinyl' },
 ];
 
-export function ControlsPanel({ product, variants, lettersCollection, patchesCollection, embroideryProduct, cricutProduct }) {
+export function ControlsPanel({ product, variants, lettersCollection, patchesCollection, embroideryProduct, cricutProduct, initialsProduct, nameProduct, freeNameProduct }) {
     const {
         mode, setMode, baseProduct, canvasObjects, vinylState,
-        isEmbroideryEnabled, embroideryState,
+        isEmbroideryEnabled, embroideryState, simpleText, setSimpleText
     } = useCustomizerStore();
     const [isOpen, setIsOpen] = useState(false);
 
+    // --- DETERMINE ACTIVE SIMPLE TEXT MODE & LABEL ---
+    let simpleTextLabel = '';
+    let simpleTextProduct = null;
+    let isSimpleTextActive = false;
+
+    // Check which specific mode is active to set label/product for the input view
+    if (mode === 'initials_text') {
+        simpleTextLabel = 'Initials';
+        simpleTextProduct = initialsProduct;
+        isSimpleTextActive = true;
+    } else if (mode === 'name_text') {
+        simpleTextLabel = 'Name';
+        simpleTextProduct = nameProduct;
+        isSimpleTextActive = true;
+    } else if (mode === 'free_name_text') {
+        simpleTextLabel = 'Free Name';
+        simpleTextProduct = freeNameProduct;
+        isSimpleTextActive = true;
+    }
+
     const renderActivePanel = () => {
+        // Reuse the same input UI for any of the text modes
+        if (isSimpleTextActive) {
+            return (
+                <div className="p-4 bg-white rounded-lg shadow-sm border border-gray-100">
+                    <label className="block text-sm font-bold text-gray-700 mb-2">
+                        Enter {simpleTextLabel}
+                    </label>
+                    <input
+                        type="text"
+                        value={simpleText}
+                        onChange={(e) => setSimpleText(e.target.value)}
+                        placeholder={`Type your ${simpleTextLabel.toLowerCase()} here...`}
+                        className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-pink-500 focus:border-pink-500 outline-none transition-all"
+                    />
+                    <p className="mt-2 text-xs text-gray-500">
+                        Please check spelling carefully.
+                    </p>
+                </div>
+            );
+        }
+
         switch (mode) {
             case 'color':
                 return <ColorOptionPanel product={product} variants={variants} />;
@@ -47,14 +88,32 @@ export function ControlsPanel({ product, variants, lettersCollection, patchesCol
         return acc + (parseFloat(price) || 0);
     }, 0);
 
-    const totalPrice = (baseProduct?.price || 0) + customizationTotal;
+    // Add simple text price if active
+    let simpleTextPrice = 0;
+    if (isSimpleTextActive && simpleTextProduct?.selectedOrFirstAvailableVariant?.price?.amount) {
+        simpleTextPrice = parseFloat(simpleTextProduct.selectedOrFirstAvailableVariant.price.amount);
+    }
+
+    const totalPrice = (baseProduct?.price || 0) + customizationTotal + simpleTextPrice;
 
     // --- OPTIONS FILTERING ---
     const activeOptions = OPTIONS.filter(opt => {
         if (opt.id === 'letters_patches') return baseProduct?.isLPEnabled !== false;
         if (opt.id === 'vinyl') return baseProduct?.isCricutEnabled !== false;
+        if (opt.id === 'embroidery') return baseProduct?.isEmbroideryOptionEnabled === true;
         return true;
     });
+
+    // Add enabled text options dynamically
+    if (baseProduct?.isInitialsEnabled) {
+        activeOptions.push({ id: 'initials_text', label: 'Initials' });
+    }
+    if (baseProduct?.isNameEnabled) {
+        activeOptions.push({ id: 'name_text', label: 'Name' });
+    }
+    if (baseProduct?.isFreeNameEnabled) {
+        activeOptions.push({ id: 'free_name_text', label: 'Free Name' });
+    }
 
     // --- VALIDATION LOGIC ---
     const maxChars = baseProduct?.maxCharacters || 30;
@@ -81,7 +140,10 @@ export function ControlsPanel({ product, variants, lettersCollection, patchesCol
     const maxItemsUsed = groupedLines.length > 0 ? Math.max(...groupedLines.map(l => l.length)) : 0;
     const isLPValid = lineCount <= maxLines && maxItemsUsed <= maxItemsPerLine;
 
-    const isBlocked = !isEmbroideryValid || (lpObjects.length > 0 && !isLPValid);
+    // Simple Text Validation: Must not be empty if mode is active
+    const isSimpleTextValid = !isSimpleTextActive || (simpleText && simpleText.trim().length > 0);
+
+    const isBlocked = !isEmbroideryValid || (lpObjects.length > 0 && !isLPValid) || !isSimpleTextValid;
 
     return (
         <div className="flex flex-col h-full">
@@ -113,7 +175,7 @@ export function ControlsPanel({ product, variants, lettersCollection, patchesCol
                         className="w-full flex items-center justify-between p-4 bg-white border border-gray-300 rounded-lg hover:border-pink-50 transition-colors"
                     >
                         <span className="font-medium text-gray-700">
-                            {activeOptions.find(o => o.id === mode)?.label || 'Select Personalisation'}
+                            {activeOptions.find(o => o.id === mode)?.label || simpleTextLabel || 'Select Personalisation'}
                         </span>
                         {isOpen ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
                     </button>
@@ -158,6 +220,11 @@ export function ControlsPanel({ product, variants, lettersCollection, patchesCol
                         You can have a maximum of {maxLines} lines and {maxItemsPerLine} items per line. Make sure all items are aligned.
                     </div>
                 )}
+                {!isSimpleTextValid && (
+                    <div className="mb-4 p-3 bg-red-50 border border-red-100 rounded-lg text-xs text-red-600 font-medium animate-in fade-in slide-in-from-bottom-2">
+                        Please enter your {simpleTextLabel.toLowerCase()} to proceed.
+                    </div>
+                )}
 
                 <div className="flex items-center justify-between mb-4">
                     <span className="text-gray-600">Subtotal:</span>
@@ -191,7 +258,8 @@ export function ControlsPanel({ product, variants, lettersCollection, patchesCol
                                         { key: 'Total_Items', value: `${canvasObjects.length}` },
                                         { key: 'Customization_Ref', value: `Ref-${Date.now()}` },
                                         ...(isEmbroideryEnabled ? [{ key: 'Includes_Embroidery', value: 'Yes' }] : []),
-                                        ...(vinylState.image ? [{ key: 'Includes_Vinyl', value: 'Yes' }] : [])
+                                        ...(vinylState.image ? [{ key: 'Includes_Vinyl', value: 'Yes' }] : []),
+                                        ...(isSimpleTextActive ? [{ key: `Includes_${simpleTextLabel.replace(' ', '_')}`, value: 'Yes' }] : [])
                                     ]
                                 },
                                 ...(isEmbroideryEnabled && embroideryProduct?.selectedOrFirstAvailableVariant?.id ? [
@@ -200,7 +268,7 @@ export function ControlsPanel({ product, variants, lettersCollection, patchesCol
                                         quantity: 1,
                                         attributes: [
                                             { key: 'Text', value: embroideryState.text || '' },
-                                            { key: 'Font', value: embroideryState.fontFamily || '' },
+                                            { key: 'Font Family', value: embroideryState.fontFamily || '' },
                                             { key: 'Color', value: embroideryState.color || '' },
                                             { key: 'Parent_Ref', value: `Ref-${Date.now()}` }
                                         ]
@@ -212,6 +280,17 @@ export function ControlsPanel({ product, variants, lettersCollection, patchesCol
                                         quantity: 1,
                                         attributes: [
                                             { key: 'Filename', value: vinylState.filename || 'Uploaded Image' },
+                                            { key: 'Parent_Ref', value: `Ref-${Date.now()}` }
+                                        ]
+                                    }
+                                ] : []),
+                                ...(isSimpleTextActive && simpleTextProduct?.selectedOrFirstAvailableVariant?.id ? [
+                                    {
+                                        merchandiseId: simpleTextProduct.selectedOrFirstAvailableVariant.id,
+                                        quantity: 1,
+                                        attributes: [
+                                            { key: 'Personalisation Type', value: simpleTextLabel },
+                                            { key: 'Text', value: simpleText },
                                             { key: 'Parent_Ref', value: `Ref-${Date.now()}` }
                                         ]
                                     }
