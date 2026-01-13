@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, Fragment } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import useCustomizerStore from '../../store/useCustomizerStore';
 import { AddToCartButton } from '~/components/AddToCartButton';
@@ -145,6 +145,68 @@ export function ControlsPanel({ product, variants, lettersCollection, patchesCol
 
     const isBlocked = !isEmbroideryValid || (lpObjects.length > 0 && !isLPValid) || !isSimpleTextValid;
 
+    const cartLines = [
+        {
+            merchandiseId: baseProduct?.variantId,
+            quantity: 1,
+            attributes: [
+                { key: 'Total_Items', value: `${canvasObjects.length}` },
+                { key: 'Customization_Ref', value: `Ref-${Date.now()}` },
+                ...(isEmbroideryEnabled ? [{ key: 'Includes_Embroidery', value: 'Yes' }] : []),
+                ...(vinylState.image ? [{ key: 'Includes_Vinyl', value: 'Yes' }] : []),
+                ...(isSimpleTextActive ? [{ key: `Includes_${simpleTextLabel.replace(' ', '_')}`, value: 'Yes' }] : [])
+            ]
+        },
+        ...(isEmbroideryEnabled && embroideryProduct?.selectedOrFirstAvailableVariant?.id ? [
+            {
+                merchandiseId: embroideryProduct.selectedOrFirstAvailableVariant.id,
+                quantity: 1,
+                attributes: [
+                    { key: 'Text', value: embroideryState.text || '' },
+                    { key: 'Font Family', value: embroideryState.fontFamily || '' },
+                    { key: 'Color', value: embroideryState.color || '' },
+                    { key: 'Parent_Ref', value: `Ref-${Date.now()}` }
+                ]
+            }
+        ] : []),
+        ...(vinylState.image && cricutProduct?.selectedOrFirstAvailableVariant?.id ? [
+            {
+                merchandiseId: cricutProduct.selectedOrFirstAvailableVariant.id,
+                quantity: 1,
+                attributes: [
+                    { key: 'Filename', value: vinylState.filename || 'Uploaded Image' },
+                    { key: 'Parent_Ref', value: `Ref-${Date.now()}` }
+                ]
+            }
+        ] : []),
+        ...(isSimpleTextActive && simpleTextProduct?.selectedOrFirstAvailableVariant?.id ? [
+            {
+                merchandiseId: simpleTextProduct.selectedOrFirstAvailableVariant.id,
+                quantity: 1,
+                attributes: [
+                    { key: 'Personalisation Type', value: simpleTextLabel },
+                    { key: 'Text', value: simpleText },
+                    { key: 'Parent_Ref', value: `Ref-${Date.now()}` }
+                ]
+            }
+        ] : []),
+        ...canvasObjects
+            .filter(obj => (obj.type === 'letter' || obj.type === 'patch') && obj.variantId)
+            .map(obj => ({
+                merchandiseId: obj.variantId,
+                quantity: 1,
+                attributes: [
+                    { key: 'Placement_X', value: Math.round(obj.x).toString() },
+                    { key: 'Placement_Y', value: Math.round(obj.y).toString() },
+                    { key: 'Rotation', value: Math.round(obj.rotation).toString() },
+                    { key: 'Scale', value: Number(obj.scaleX).toFixed(2) },
+                    { key: 'Parent_Ref', value: `Ref-${Date.now()}` }
+                ]
+            }))
+    ];
+
+    const getVariantId = (gid) => gid?.split('/').pop() || '';
+
     return (
         <div className="flex flex-col h-full">
             {/* Product Info Header */}
@@ -249,76 +311,33 @@ export function ControlsPanel({ product, variants, lettersCollection, patchesCol
                     </button>
 
                     <div className="flex-[2]">
-                        <AddToCartButton
-                            lines={[
-                                {
-                                    merchandiseId: baseProduct?.variantId,
-                                    quantity: 1,
-                                    attributes: [
-                                        { key: 'Total_Items', value: `${canvasObjects.length}` },
-                                        { key: 'Customization_Ref', value: `Ref-${Date.now()}` },
-                                        ...(isEmbroideryEnabled ? [{ key: 'Includes_Embroidery', value: 'Yes' }] : []),
-                                        ...(vinylState.image ? [{ key: 'Includes_Vinyl', value: 'Yes' }] : []),
-                                        ...(isSimpleTextActive ? [{ key: `Includes_${simpleTextLabel.replace(' ', '_')}`, value: 'Yes' }] : [])
-                                    ]
-                                },
-                                ...(isEmbroideryEnabled && embroideryProduct?.selectedOrFirstAvailableVariant?.id ? [
-                                    {
-                                        merchandiseId: embroideryProduct.selectedOrFirstAvailableVariant.id,
-                                        quantity: 1,
-                                        attributes: [
-                                            { key: 'Text', value: embroideryState.text || '' },
-                                            { key: 'Font Family', value: embroideryState.fontFamily || '' },
-                                            { key: 'Color', value: embroideryState.color || '' },
-                                            { key: 'Parent_Ref', value: `Ref-${Date.now()}` }
-                                        ]
-                                    }
-                                ] : []),
-                                ...(vinylState.image && cricutProduct?.selectedOrFirstAvailableVariant?.id ? [
-                                    {
-                                        merchandiseId: cricutProduct.selectedOrFirstAvailableVariant.id,
-                                        quantity: 1,
-                                        attributes: [
-                                            { key: 'Filename', value: vinylState.filename || 'Uploaded Image' },
-                                            { key: 'Parent_Ref', value: `Ref-${Date.now()}` }
-                                        ]
-                                    }
-                                ] : []),
-                                ...(isSimpleTextActive && simpleTextProduct?.selectedOrFirstAvailableVariant?.id ? [
-                                    {
-                                        merchandiseId: simpleTextProduct.selectedOrFirstAvailableVariant.id,
-                                        quantity: 1,
-                                        attributes: [
-                                            { key: 'Personalisation Type', value: simpleTextLabel },
-                                            { key: 'Text', value: simpleText },
-                                            { key: 'Parent_Ref', value: `Ref-${Date.now()}` }
-                                        ]
-                                    }
-                                ] : []),
-                                ...canvasObjects
-                                    .filter(obj => (obj.type === 'letter' || obj.type === 'patch') && obj.variantId)
-                                    .map(obj => ({
-                                        merchandiseId: obj.variantId,
-                                        quantity: 1,
-                                        attributes: [
-                                            { key: 'Placement_X', value: Math.round(obj.x).toString() },
-                                            { key: 'Placement_Y', value: Math.round(obj.y).toString() },
-                                            { key: 'Rotation', value: Math.round(obj.rotation).toString() },
-                                            { key: 'Scale', value: Number(obj.scaleX).toFixed(2) },
-                                            { key: 'Parent_Ref', value: `Ref-${Date.now()}` }
-                                        ]
-                                    }))
-                            ]}
-                            disabled={!baseProduct || isBlocked}
-                            redirectTo="https://thehappytribe.ae/cart"
-                        >
-                            <div className={clsx(
-                                "w-full h-full flex items-center justify-center rounded-full font-bold transition-colors shadow-lg uppercase text-sm tracking-wide py-3",
-                                isBlocked ? "bg-gray-200 text-gray-400 cursor-not-allowed shadow-none" : "bg-pink-500 text-white hover:bg-pink-600 shadow-pink-200 cursor-pointer"
-                            )}>
+                        <form action="https://thehappytribe.ae/cart/add" method="POST">
+                            <input type="hidden" name="return_to" value="/cart" />
+                            {cartLines.map((line, i) => (
+                                <Fragment key={i}>
+                                    <input type="hidden" name={`items[${i}][id]`} value={getVariantId(line.merchandiseId)} />
+                                    <input type="hidden" name={`items[${i}][quantity]`} value={line.quantity} />
+                                    {line.attributes?.map((attr, j) => (
+                                        <input
+                                            key={j}
+                                            type="hidden"
+                                            name={`items[${i}][properties][${attr.key}]`}
+                                            value={attr.value}
+                                        />
+                                    ))}
+                                </Fragment>
+                            ))}
+                            <button
+                                type="submit"
+                                disabled={!baseProduct || isBlocked}
+                                className={clsx(
+                                    "w-full h-full flex items-center justify-center rounded-full font-bold transition-colors shadow-lg uppercase text-sm tracking-wide py-3",
+                                    isBlocked ? "bg-gray-200 text-gray-400 cursor-not-allowed shadow-none" : "bg-pink-500 text-white hover:bg-pink-600 shadow-pink-200 cursor-pointer"
+                                )}
+                            >
                                 Add to Bag
-                            </div>
-                        </AddToCartButton>
+                            </button>
+                        </form>
                     </div>
                 </div>
             </div>
