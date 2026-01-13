@@ -310,7 +310,7 @@ export function ControlsPanel({ product, variants, lettersCollection, patchesCol
                                     }))
                             ]}
                             disabled={!baseProduct || isBlocked}
-                            redirectTo="/cart"
+                            redirectTo="https://thehappytribe.ae/cart"
                         >
                             <div className={clsx(
                                 "w-full h-full flex items-center justify-center rounded-full font-bold transition-colors shadow-lg uppercase text-sm tracking-wide py-3",

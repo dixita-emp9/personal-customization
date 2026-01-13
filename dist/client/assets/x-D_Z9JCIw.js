@@ -1,4 +1,4 @@
-import{c as o}from"./products._handle-CP1MOs00.js";/**
+import{c as o}from"./products._handle-CSbtm142.js";/**
  * @license lucide-react v0.562.0 - ISC
  *
  * This source code is licensed under the ISC license.
