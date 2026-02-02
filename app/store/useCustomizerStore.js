@@ -12,7 +12,7 @@ import { create } from 'zustand';
 /**
  * @typedef {Object} CanvasObject
  * @property {string} id
- * @property {'letter' | 'patch' | 'embroidery' | 'vinyl'} type
+ * @property {'letter' | 'patch' | 'embroidery'} type
  * @property {number} x
  * @property {number} y
  * @property {number} rotation
@@ -24,7 +24,7 @@ import { create } from 'zustand';
 /**
  * @typedef {Object} CustomizerState
  * @property {CustomizationBaseProduct | null} baseProduct
- * @property {'color' | 'letters_patches' | 'embroidery' | 'vinyl'} mode
+ * @property {'color' | 'letters_patches' | 'embroidery'} mode
  * @property {CanvasObject[]} canvasObjects
  * @property {string | null} selectedObjectId
  * @property {Object} embroideryState
@@ -33,7 +33,7 @@ import { create } from 'zustand';
  * @property {number} height
  * 
  * @property {(product: CustomizationBaseProduct) => void} setBaseProduct
- * @property {(mode: 'color' | 'letters_patches' | 'embroidery' | 'vinyl') => void} setMode
+ * @property {(mode: 'color' | 'letters_patches' | 'embroidery') => void} setMode
  * @property {(object: CanvasObject) => void} addObject
  * @property {(id: string, updates: Partial<CanvasObject>) => void} updateObject
  * @property {(id: string) => void} removeObject
@@ -60,10 +60,7 @@ const useCustomizerStore = create((set, get) => ({
     },
     isEmbroideryEnabled: false,
 
-    vinylState: {
-        image: null,
-        price: 60.00
-    },
+
 
     simpleText: '',
     setSimpleText: (text) => set({ simpleText: text }),
@@ -147,55 +144,12 @@ const useCustomizerStore = create((set, get) => ({
         });
     },
 
-    // Vinyl Actions
-    setVinylImage: (payload) => {
-        set((state) => {
-            // payload can be { image, filename } or null
-            const image = payload?.image || null;
-            const filename = payload?.filename || null;
 
-            // Check if vinyl object exists
-            let newObjects = [...state.canvasObjects];
-            const existingIndex = newObjects.findIndex(obj => obj.type === 'vinyl');
-
-            if (image) {
-                const vinylObj = {
-                    type: 'vinyl',
-                    id: 'vinyl-main',
-                    x: state.width / 2,
-                    y: state.height / 2,
-                    rotation: 0,
-                    scaleX: 1,
-                    scaleY: 1,
-                    image: image,
-                    filename: filename
-                };
-
-                if (existingIndex >= 0) {
-                    newObjects[existingIndex] = { ...newObjects[existingIndex], image, filename };
-                } else {
-                    newObjects.push(vinylObj);
-                }
-            } else {
-                // Remove if null
-                if (existingIndex >= 0) {
-                    newObjects.splice(existingIndex, 1);
-                }
-            }
-
-            return {
-                vinylState: { ...state.vinylState, image, filename },
-                canvasObjects: newObjects,
-                selectedObjectId: 'vinyl-main'
-            };
-        });
-    },
 
     clearCanvas: () => set({
         canvasObjects: [],
         selectedObjectId: null,
         isEmbroideryEnabled: false,
-        vinylState: { image: null, filename: null, price: 60.00 },
         embroideryState: { text: '', fontFamily: 'Lucida', color: 'Black', price: 80.00 },
         simpleText: '',
 

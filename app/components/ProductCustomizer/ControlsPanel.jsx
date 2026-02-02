@@ -6,19 +6,18 @@ import { clsx } from 'clsx';
 // Import Panels
 import { LettersPatchesPanel } from './panels/LettersPatchesPanel';
 import { EmbroideryPanel } from './panels/EmbroideryPanel';
-import { VinylPanel } from './panels/VinylPanel';
+
 import { ColorOptionPanel } from './panels/ColorOptionPanel';
 
 const OPTIONS = [
     { id: 'color', label: 'Pick Personalisation (Color)' },
     { id: 'letters_patches', label: 'Letters & Patches' },
     { id: 'embroidery', label: 'Embroidery' },
-    { id: 'vinyl', label: 'Cricut/Vinyl' },
 ];
 
-export function ControlsPanel({ product, variants, lettersCollection, patchesCollection, embroideryProduct, cricutProduct, initialsProduct, nameProduct, freeNameProduct }) {
+export function ControlsPanel({ product, variants, lettersCollection, patchesCollection, embroideryProduct, initialsProduct, nameProduct, freeNameProduct }) {
     const {
-        mode, setMode, baseProduct, canvasObjects, vinylState,
+        mode, setMode, baseProduct, canvasObjects,
         isEmbroideryEnabled, embroideryState, simpleText, setSimpleText
     } = useCustomizerStore();
     const [isOpen, setIsOpen] = useState(false);
@@ -72,8 +71,6 @@ export function ControlsPanel({ product, variants, lettersCollection, patchesCol
                 return <LettersPatchesPanel lettersCollection={lettersCollection} patchesCollection={patchesCollection} />;
             case 'embroidery':
                 return <EmbroideryPanel />;
-            case 'vinyl':
-                return <VinylPanel />;
             default:
                 return null;
         }
@@ -82,9 +79,7 @@ export function ControlsPanel({ product, variants, lettersCollection, patchesCol
     // --- PRICE CALCULATION ---
     const customizationTotal = canvasObjects.reduce((acc, obj) => {
         let price = obj.price;
-        if (obj.type === 'vinyl' && (price === undefined || price === null)) {
-            price = vinylState?.price || 60.00;
-        }
+
         return acc + (parseFloat(price) || 0);
     }, 0);
 
@@ -99,7 +94,7 @@ export function ControlsPanel({ product, variants, lettersCollection, patchesCol
     // --- OPTIONS FILTERING ---
     const activeOptions = OPTIONS.filter(opt => {
         if (opt.id === 'letters_patches') return baseProduct?.isLPEnabled !== false;
-        if (opt.id === 'vinyl') return baseProduct?.isCricutEnabled !== false;
+
         if (opt.id === 'embroidery') return baseProduct?.isEmbroideryOptionEnabled === true;
         return true;
     });
@@ -153,7 +148,7 @@ export function ControlsPanel({ product, variants, lettersCollection, patchesCol
                 { key: 'Total_Items', value: `${canvasObjects.length}` },
                 { key: 'Customization_Ref', value: `Ref-${Date.now()}` },
                 ...(isEmbroideryEnabled ? [{ key: 'Includes_Embroidery', value: 'Yes' }] : []),
-                ...(vinylState.image ? [{ key: 'Includes_Vinyl', value: 'Yes' }] : []),
+
                 ...(isSimpleTextActive ? [{ key: `Includes_${simpleTextLabel.replace(' ', '_')}`, value: 'Yes' }] : [])
             ]
         },
@@ -169,16 +164,7 @@ export function ControlsPanel({ product, variants, lettersCollection, patchesCol
                 ]
             }
         ] : []),
-        ...(vinylState.image && cricutProduct?.selectedOrFirstAvailableVariant?.id ? [
-            {
-                merchandiseId: cricutProduct.selectedOrFirstAvailableVariant.id,
-                quantity: 1,
-                attributes: [
-                    { key: 'Filename', value: vinylState.filename || 'Uploaded Image' },
-                    { key: 'Parent_Ref', value: `Ref-${Date.now()}` }
-                ]
-            }
-        ] : []),
+
         ...(isSimpleTextActive && simpleTextProduct?.selectedOrFirstAvailableVariant?.id ? [
             {
                 merchandiseId: simpleTextProduct.selectedOrFirstAvailableVariant.id,

@@ -1,0 +1,1 @@
+import{p as f,m as s}from"./products._handle-8_n1wQ-m.js";import"./chunk-TMI4QPZX-D3Hmv1gF.js";import"./jsx-runtime-D_cMIvAT.js";import"./index-Cadgn1sa.js";import"./ProductPrice-xN_7KDD1.js";import"./Money-CDJBjS_6.js";import"./Image-CrGaIeqO.js";export{f as default,s as meta};

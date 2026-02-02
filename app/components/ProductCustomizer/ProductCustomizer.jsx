@@ -15,7 +15,7 @@ function ClientOnly({ children, fallback = null }) {
     return mounted ? children() : fallback;
 }
 
-function ProductCustomizerClient({ product, variants, lettersCollection, patchesCollection, embroideryProduct, cricutProduct, initialsProduct, nameProduct, freeNameProduct }) {
+function ProductCustomizerClient({ product, variants, lettersCollection, patchesCollection, embroideryProduct, initialsProduct, nameProduct, freeNameProduct }) {
     const { mode } = useCustomizerStore();
 
     const getGuidelines = () => {
@@ -24,8 +24,7 @@ function ProductCustomizerClient({ product, variants, lettersCollection, patches
                 return product.guidelines?.value;
             case 'embroidery':
                 return product.guidelines_embroidery?.value;
-            case 'vinyl':
-                return product.guidelines_cricut?.value;
+
             default:
                 return null;
         }
@@ -67,7 +66,7 @@ function ProductCustomizerClient({ product, variants, lettersCollection, patches
                         lettersCollection={lettersCollection}
                         patchesCollection={patchesCollection}
                         embroideryProduct={embroideryProduct}
-                        cricutProduct={cricutProduct}
+
                         initialsProduct={initialsProduct}
                         nameProduct={nameProduct}
                         freeNameProduct={freeNameProduct}
@@ -78,7 +77,7 @@ function ProductCustomizerClient({ product, variants, lettersCollection, patches
     );
 }
 
-export function ProductCustomizer({ product, variants, selectedVariant, lettersCollection, patchesCollection, embroideryProduct, cricutProduct, initialsProduct, nameProduct, freeNameProduct }) {
+export function ProductCustomizer({ product, variants, selectedVariant, lettersCollection, patchesCollection, embroideryProduct, initialsProduct, nameProduct, freeNameProduct }) {
     const { setBaseProduct } = useCustomizerStore();
 
     useEffect(() => {
@@ -139,11 +138,11 @@ export function ProductCustomizer({ product, variants, selectedVariant, lettersC
                 maxLines: parseInt(product.lines?.value || '1', 10),
                 maxItemsPerLine: parseInt(product.small_combo?.value || '4', 10),
                 lettersAndPatchesText: product.letters_and_patches?.value || '',
-                cricutText: product.cricut?.value || '',
+
 
                 // Enable/Disable flags
                 isLPEnabled: product.letters_and_patches?.value && product.letters_and_patches?.value !== 'false',
-                isCricutEnabled: product.cricut?.value && product.cricut?.value !== 'false',
+
                 isInitialsEnabled: product.initials?.value === 'true',
                 isNameEnabled: product.name?.value === 'true',
                 isFreeNameEnabled: product.free_name?.value === 'true',
@@ -161,7 +160,7 @@ export function ProductCustomizer({ product, variants, selectedVariant, lettersC
                     lettersCollection={lettersCollection}
                     patchesCollection={patchesCollection}
                     embroideryProduct={embroideryProduct}
-                    cricutProduct={cricutProduct}
+
                     initialsProduct={initialsProduct}
                     nameProduct={nameProduct}
                     freeNameProduct={freeNameProduct}

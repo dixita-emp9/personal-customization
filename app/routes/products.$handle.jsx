@@ -58,7 +58,7 @@ async function loadCriticalData({ context, params, request }) {
     { collection: lettersCollection },
     { collection: patchesCollection },
     { product: embroideryProduct },
-    { product: cricutProduct },
+
     { product: initialsProduct },
     { product: nameProduct },
     { product: freeNameProduct }
@@ -75,9 +75,7 @@ async function loadCriticalData({ context, params, request }) {
     storefront.query(PRODUCT_QUERY, {
       variables: { handle: 'large-embroidery', selectedOptions: [] } // 'large-embroidery' from URL
     }),
-    storefront.query(PRODUCT_QUERY, {
-      variables: { handle: 'cricut', selectedOptions: [] } // 'cricut' from URL
-    }),
+
     storefront.query(PRODUCT_QUERY, {
       variables: { handle: 'initials', selectedOptions: [] }
     }),
@@ -101,7 +99,7 @@ async function loadCriticalData({ context, params, request }) {
     lettersCollection,
     patchesCollection,
     embroideryProduct,
-    cricutProduct,
+
     initialsProduct,
     nameProduct,
     freeNameProduct
@@ -120,7 +118,7 @@ function loadDeferredData({ context, params }) {
 
 export default function Product() {
   /** @type {LoaderReturnData} */
-  const { product, lettersCollection, patchesCollection, embroideryProduct, cricutProduct, initialsProduct, nameProduct, freeNameProduct } = useLoaderData();
+  const { product, lettersCollection, patchesCollection, embroideryProduct, initialsProduct, nameProduct, freeNameProduct } = useLoaderData();
   const [searchParams] = useSearchParams();
   const [isCustomizing, setIsCustomizing] = useState(
     searchParams.has('personalise') || searchParams.has('customize')
@@ -171,7 +169,7 @@ export default function Product() {
           lettersCollection={lettersCollection}
           patchesCollection={patchesCollection}
           embroideryProduct={embroideryProduct}
-          cricutProduct={cricutProduct}
+
           initialsProduct={initialsProduct}
           nameProduct={nameProduct}
           freeNameProduct={freeNameProduct}
@@ -339,9 +337,7 @@ const PRODUCT_FRAGMENT = `#graphql
     guidelines: metafield(namespace: "tht", key: "guidelines") {
       value
     }
-    guidelines_cricut: metafield(namespace: "tht", key: "guidelines_cricut") {
-      value
-    }
+
     guidelines_embroidery: metafield(namespace: "tht", key: "guidelines_embroidery") {
       value
     }
@@ -366,9 +362,7 @@ const PRODUCT_FRAGMENT = `#graphql
     lines: metafield(namespace: "tht", key: "lines") {
       value
     }
-    cricut: metafield(namespace: "tht", key: "cricut") {
-      value
-    }
+
     embroidery: metafield(namespace: "tht", key: "embroidery") {
       value
     }

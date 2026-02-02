@@ -12,7 +12,6 @@ const URLImage = ({ image, nodeRef, onChange, ...props }) => {
         if (img && nodeRef?.current) {
             const node = nodeRef.current;
             const isRestrictedType = props.type === 'letter' || props.type === 'patch';
-            const isVinyl = props.type === 'vinyl';
 
             // 1. Center the anchor point
             node.offsetX(img.width / 2);
@@ -26,13 +25,6 @@ const URLImage = ({ image, nodeRef, onChange, ...props }) => {
                     // 100px fixed size for letters/patches
                     const maxDim = 100;
                     scale = maxDim / Math.max(img.width, img.height);
-                } else if (isVinyl) {
-                    // Reasonable size for Vinyl (e.g., max 200px or 1/3 of stage)
-                    // This prevents huge uploads from covering the screen or being off-canvas
-                    const maxDim = 200;
-                    if (img.width > maxDim || img.height > maxDim) {
-                        scale = maxDim / Math.max(img.width, img.height);
-                    }
                 }
 
                 if (scale !== 1) {
